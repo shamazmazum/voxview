@@ -2,7 +2,7 @@
 
 (sera:-> make-realize-handler (gl-state (model *) rtg-math.types:vec3)
          (values (sera:-> (gir::object-instance) (values &optional)) &optional))
-(defun make-realize-handler (gl-state model voxsize)
+(defun make-realize-handler (gl-state model nvoxels)
   (lambda (area)
     (gtk4:gl-area-make-current area)
 
@@ -11,7 +11,7 @@
                      (posbuffer   gl-state-posbuffer)
                      (vertbuffer  gl-state-vertbuffer)
                      (trans-loc   gl-state-trans-loc)
-                     (voxsize-loc gl-state-voxsize-loc))
+                     (nvoxels-loc gl-state-nvoxels-loc))
         gl-state
 
       ;; Create program
@@ -53,16 +53,16 @@
 
       ;; Set locations of the uniforms
       (setf trans-loc   (gl:get-uniform-location program "TRANSFORM")
-            voxsize-loc (gl:get-uniform-location program "VOXSIZE"))
+            nvoxels-loc (gl:get-uniform-location program "NVOXELS"))
 
       ;; Use our only program
       (gl:use-program program)
 
       ;; Set voxel size
-      (gl:uniformf voxsize-loc
-                   (aref voxsize 0)
-                   (aref voxsize 1)
-                   (aref voxsize 2)))
+      (gl:uniformf nvoxels-loc
+                   (aref nvoxels 0)
+                   (aref nvoxels 1)
+                   (aref nvoxels 2)))
 
     (values)))
 
@@ -123,11 +123,11 @@
 
 (sera:-> make-drawing-area ((model *) camera rtg-math.types:vec3)
          (values gir::object-instance &optional))
-(defun make-drawing-area (model camera voxsize)
+(defun make-drawing-area (model camera nvoxels)
   (let ((area (gtk4:make-gl-area))
         (gl-state (make-gl-state)))
     (setf (gtk4:gl-area-allowed-apis area) 1) ; OpenGL Only
-    (gtk4:connect area "realize"   (make-realize-handler   gl-state model voxsize))
+    (gtk4:connect area "realize"   (make-realize-handler   gl-state model nvoxels))
     (gtk4:connect area "unrealize" (make-unrealize-handler gl-state))
     (gtk4:connect area "render"    (make-draw-handler      gl-state camera model))
     area))
