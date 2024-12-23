@@ -1,55 +1,56 @@
 (in-package :voxview)
 
-(declaim (type (simple-array single-float (#.(* 3 3 12))) +cube-vertices+))
-(alex:define-constant +cube-vertices+
-    (map '(vector single-float)
-         #'float
-         '( 1 -1  1
-           -1 -1 -1
-            1 -1 -1
+(deftype model (n) `(simple-array single-float (,n 3)))
 
-           -1  1 -1
-            1  1  1
-            1  1 -1
+(declaim (type (model #.(* 3 12)) *cube-vertices*))
+(defparameter *cube-vertices*
+  (make-array '(#.(* 3 12) 3)
+              :element-type 'single-float
+              :initial-contents
+              '(( 1f0 -1f0  1f0)
+                (-1f0 -1f0 -1f0)
+                ( 1f0 -1f0 -1f0)
 
-            1  1 -1
-            1 -1  1
-            1 -1 -1
+                (-1f0  1f0 -1f0)
+                ( 1f0  1f0  1f0)
+                ( 1f0  1f0 -1f0)
 
-            1  1  1
-           -1 -1  1
-            1 -1  1
+                ( 1f0  1f0 -1f0)
+                ( 1f0 -1f0  1f0)
+                ( 1f0 -1f0 -1f0)
 
-           -1 -1  1
-           -1  1 -1
-           -1 -1 -1
+                ( 1f0  1f0  1f0)
+                (-1f0 -1f0  1f0)
+                ( 1f0 -1f0  1f0)
 
-            1 -1 -1
-           -1  1 -1
-            1  1 -1
+                (-1f0 -1f0  1f0)
+                (-1f0  1f0 -1f0)
+                (-1f0 -1f0 -1f0)
 
-            1 -1  1
-           -1 -1  1
-           -1 -1 -1
+                ( 1f0 -1f0 -1f0)
+                (-1f0  1f0 -1f0)
+                ( 1f0  1f0 -1f0)
 
-           -1  1 -1
-           -1  1  1
-            1  1  1
+                ( 1f0 -1f0  1f0)
+                (-1f0 -1f0  1f0)
+                (-1f0 -1f0 -1f0)
 
-            1  1 -1
-            1  1  1
-            1 -1  1
+                (-1f0  1f0 -1f0)
+                (-1f0  1f0  1f0)
+                ( 1f0  1f0  1f0)
 
-            1  1  1
-           -1  1  1
-           -1 -1  1
+                ( 1f0  1f0 -1f0)
+                ( 1f0  1f0  1f0)
+                ( 1f0 -1f0  1f0)
 
-           -1 -1  1
-           -1  1  1
-           -1  1 -1
+                ( 1f0  1f0  1f0)
+                (-1f0  1f0  1f0)
+                (-1f0 -1f0  1f0)
 
-            1 -1 -1
-           -1 -1 -1
-           -1  1 -1))
+                (-1f0 -1f0  1f0)
+                (-1f0  1f0  1f0)
+                (-1f0  1f0 -1f0)
 
-  :test #'equalp)
+                ( 1f0 -1f0 -1f0)
+                (-1f0 -1f0 -1f0)
+                (-1f0  1f0 -1f0))))

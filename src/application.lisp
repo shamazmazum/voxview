@@ -5,8 +5,10 @@
                                     :application gtk4:*application*))
     (setf (gtk4:window-title window) "Voxview")
     (let ((area (make-drawing-area
-                 (make-array 9 :element-type 'single-float :initial-contents
-                             '(0.0 0.0 0.0 0.1 0.0 0.0 0.1 0.1 0.1))
+                 (make-array '(3 3)
+                             :element-type 'single-float
+                             :initial-contents
+                             '((0.0 0.0 0.0) (0.1 0.0 0.0) (0.1 0.1 0.1)))
                  (make-camera)
                  (rtg-math.vector3:make 0.1 0.1 0.1))))
       (setf (gtk4:window-child window) area))

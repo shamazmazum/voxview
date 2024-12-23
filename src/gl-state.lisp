@@ -13,15 +13,15 @@
   (trans-loc   -1 :type fixnum)
   (voxsize-loc -1 :type fixnum))
 
-(sera:-> array->gl
-         ((simple-array single-float (*)))
+(sera:-> array->gl ((model *))
          (values gl:gl-array &optional))
 (defun array->gl (array)
   "Convert one dimensional lisp array of floats to foreign array"
-  (let ((gl-array (gl:alloc-gl-array :float (length array))))
-    (loop for i from 0 by 1
-          for x across array do
-          (setf (gl:glaref gl-array i) x))
+  (declare (optimize (speed 3)))
+  (let ((gl-array (gl:alloc-gl-array :float (array-total-size array))))
+    (loop for i below (array-total-size array) do
+          (setf (gl:glaref gl-array i)
+                (row-major-aref array i)))
     gl-array))
 
 (defmacro with-gl-array ((var lisp-array) &rest body)

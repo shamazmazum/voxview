@@ -1,8 +1,6 @@
 (in-package :voxview)
 
-(deftype model () '(simple-array single-float (*)))
-
-(sera:-> make-realize-handler (gl-state model rtg-math.types:vec3)
+(sera:-> make-realize-handler (gl-state (model *) rtg-math.types:vec3)
          (values (sera:-> (gir::object-instance) (values &optional)) &optional))
 (defun make-realize-handler (gl-state model voxsize)
   (lambda (area)
@@ -44,7 +42,7 @@
       ;; Fill model vertices
       (setf vertbuffer (gl:gen-buffer))
       (gl:bind-buffer :array-buffer vertbuffer)
-      (with-gl-array (vertarray +cube-vertices+)
+      (with-gl-array (vertarray *cube-vertices*)
         (gl:buffer-data :array-buffer :static-draw vertarray))
 
       ;; Fill voxel positions
@@ -79,7 +77,7 @@
     (gl:delete-program (gl-state-program gl-state))
     (values)))
 
-(sera:-> make-draw-handler (gl-state camera model)
+(sera:-> make-draw-handler (gl-state camera (model *))
          (values (sera:-> (gir::object-instance gir::object-instance)
                           (values boolean &optional))
                  &optional))
@@ -115,15 +113,15 @@
     (gl:vertex-attrib-pointer 1 3 :float nil 0
                               (cffi:null-pointer))
     (gl:draw-arrays-instanced :triangles 0
-                              (/ (length +cube-vertices+) 3)
-                              (/ (length model) 3))
+                              (array-dimension *cube-vertices* 0)
+                              (array-dimension model 0))
     (gl:disable-vertex-attrib-array 1)
     (gl:disable-vertex-attrib-array 0)
 
     ;; T indicates that we are done
     t))
 
-(sera:-> make-drawing-area (model camera rtg-math.types:vec3)
+(sera:-> make-drawing-area ((model *) camera rtg-math.types:vec3)
          (values gir::object-instance &optional))
 (defun make-drawing-area (model camera voxsize)
   (let ((area (gtk4:make-gl-area))
