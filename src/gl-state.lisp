@@ -2,13 +2,13 @@
 
 (defstruct scene
   ;; Camera position
-  (camera-position (rtg-math.vector3:make 0.0 0.0 -1.0)
+  (camera-position (rtg-math.vector3:make 0.0 1.0 -1.5)
                    :type rtg-math.types:vec3)
   ;; Camera fov
   (camera-fov      75.0
                    :type single-float)
   ;; Light position
-  (light-position  (rtg-math.vector3:make 0.0 0.0 -2.0)
+  (light-position  (rtg-math.vector3:make 0.0 100.0 -50.0)
                    :type rtg-math.types:vec3)
   ;; Light color
   (light-color     (rtg-math.vector3:make 1.0 0.0 1.0)

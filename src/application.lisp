@@ -1,10 +1,7 @@
 (in-package :voxview)
 
 (defparameter *tmp-model*
-  (make-array '(2 3)
-              :element-type 'single-float
-              :initial-contents
-              '((0.0 0.0 0.0) (1.0 1.0 0.0))))
+  (load-model "~/test/grains/blobs-neuro/concave/blob-321-oc.npy"))
 
 (gtk4:define-application (:name voxview :id "org.fatimp.voxview")
   (gtk4:define-main-window (window (gtk4:make-application-window
