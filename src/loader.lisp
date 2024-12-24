@@ -1,7 +1,7 @@
 (in-package :voxview)
 
 (defparameter *loaders*
-  '(("npy" . #'numpy-npy:load-array)))
+  `(("npy" . ,#'numpy-npy:load-array)))
 
 (define-condition unknown-format (error)
   ((pathname :initarg :pathname
