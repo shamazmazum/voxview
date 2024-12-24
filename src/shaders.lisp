@@ -10,8 +10,10 @@
    '((transform :mat4)  ; World -> Camera transform
      (nvoxels   :vec3)) ; Model space dimensions (in voxels)
    '(:450)
-   '((let ((coord (+ (* (/ 2 nvoxels) position) -1
-                     (/ (1+ vertex) nvoxels))))
+   '((let* ((eps (* 0.01 (/ 2 nvoxels)))
+            (coord (+ (* (/ 2 nvoxels) position) -1
+                      (/ vertex nvoxels)
+                      (* vertex eps))))
        (values
         (* transform (vari:vec4 coord 1)) ; gl_Position
         coord                             ; Vertex coordinate in the world space
