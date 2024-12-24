@@ -11,10 +11,13 @@
                  (:file "shaders")
                  (:file "gl-state")
                  (:file "widget")
+                 (:file "loader")
+                 (:file "model")
                  (:file "application"))
     :depends-on (:cl-gtk4
                  :varjo
                  :cl-opengl
                  :rtg-math
                  :alexandria
-                 :serapeum))
+                 :serapeum
+                 :numpy-npy))
