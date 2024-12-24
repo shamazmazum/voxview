@@ -54,3 +54,56 @@
                 ( 1f0 -1f0 -1f0)
                 (-1f0 -1f0 -1f0)
                 (-1f0  1f0 -1f0))))
+
+(declaim (type (model #.(* 3 12)) *cube-normals*))
+(defparameter *cube-normals*
+  (make-array '(#.(* 3 12) 3)
+              :element-type 'single-float
+              :initial-contents
+              '(( 0f0 -1f0  0f0)
+                ( 0f0 -1f0  0f0)
+                ( 0f0 -1f0  0f0)
+
+                ( 0f0  1f0  0f0)
+                ( 0f0  1f0  0f0)
+                ( 0f0  1f0  0f0)
+
+                ( 1f0  0f0  0f0)
+                ( 1f0  0f0  0f0)
+                ( 1f0  0f0  0f0)
+
+                ( 0f0  0f0  1f0)
+                ( 0f0  0f0  1f0)
+                ( 0f0  0f0  1f0)
+
+                (-1f0  0f0  0f0)
+                (-1f0  0f0  0f0)
+                (-1f0  0f0  0f0)
+
+                ( 0f0  0f0 -1f0)
+                ( 0f0  0f0 -1f0)
+                ( 0f0  0f0 -1f0)
+
+                ( 0f0 -1f0  0f0)
+                ( 0f0 -1f0  0f0)
+                ( 0f0 -1f0  0f0)
+
+                ( 0f0  1f0  0f0)
+                ( 0f0  1f0  0f0)
+                ( 0f0  1f0  0f0)
+
+                ( 1f0  0f0  0f0)
+                ( 1f0  0f0  0f0)
+                ( 1f0  0f0  0f0)
+
+                ( 0f0  0f0  1f0)
+                ( 0f0  0f0  1f0)
+                ( 0f0  0f0  1f0)
+
+                (-1f0  0f0  0f0)
+                (-1f0  0f0  0f0)
+                (-1f0  0f0  0f0)
+
+                ( 0f0  0f0 -1f0)
+                ( 0f0  0f0 -1f0)
+                ( 0f0  0f0 -1f0))))

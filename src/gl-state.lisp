@@ -8,10 +8,10 @@
   (camera-fov      75.0
                    :type single-float)
   ;; Light position
-  (light-position  (rtg-math.vector3:make 0.0 0.0 -2.0)
+  (light-position  (rtg-math.vector3:make 0.0 2.0 -2.0)
                    :type rtg-math.types:vec3)
   ;; Light color
-  (light-color     (rtg-math.vector3:make 0.0 1.0 0.0)
+  (light-color     (rtg-math.vector3:make 1.0 0.0 1.0)
                    :type rtg-math.types:vec3))
 
 (defstruct gl-state
@@ -19,8 +19,11 @@
   (vao         -1 :type fixnum)
   (posbuffer   -1 :type fixnum)
   (vertbuffer  -1 :type fixnum)
+  (normbuffer  -1 :type fixnum)
   (trans-loc   -1 :type fixnum)
-  (nvoxels-loc -1 :type fixnum))
+  (nvoxels-loc -1 :type fixnum)
+  (lpos-loc    -1 :type fixnum)
+  (lcolor-loc  -1 :type fixnum))
 
 (sera:-> array->gl ((model *))
          (values gl:gl-array &optional))
