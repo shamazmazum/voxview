@@ -1,9 +1,18 @@
 (in-package :voxview)
 
-(defstruct camera
-  (position (rtg-math.vector3:make 2.0 0.0 0.0)
-            :type rtg-math.types:vec3)
-  (fov 75.0 :type single-float))
+(defstruct scene
+  ;; Camera position
+  (camera-position (rtg-math.vector3:make 0.0 0.0 -2.0)
+                   :type rtg-math.types:vec3)
+  ;; Camera fov
+  (camera-fov      75.0
+                   :type single-float)
+  ;; Light position
+  (light-position  (rtg-math.vector3:make 0.0 0.0 -2.0)
+                   :type rtg-math.types:vec3)
+  ;; Light color
+  (light-color     (rtg-math.vector3:make 0.0 1.0 0.0)
+                   :type rtg-math.types:vec3))
 
 (defstruct gl-state
   (program     -1 :type fixnum)
@@ -31,9 +40,9 @@
        (gl:free-gl-array ,var))))
 
 (sera:-> world->screen
-         (camera alex:positive-fixnum alex:positive-fixnum)
+         (scene alex:positive-fixnum alex:positive-fixnum)
          (values rtg-math.types:mat4 &optional))
-(defun world->screen (camera width height)
+(defun world->screen (scene width height)
   "Return world -> screen projection matrix. WIDTH and HEIGHT are
 dimensions of the GtkGLArea widget."
   (rtg-math.matrix4:*
@@ -41,8 +50,8 @@ dimensions of the GtkGLArea widget."
     (float width)
     (float height)
     0.1 10.0
-    (camera-fov camera))
+    (scene-camera-fov scene))
    (rtg-math.matrix4:look-at
     (rtg-math.vector3:make 0.0 1.0 0.0)
-    (camera-position camera)
+    (scene-camera-position scene)
     (rtg-math.vector3:make 0.0 0.0 0.0))))

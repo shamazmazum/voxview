@@ -8,8 +8,8 @@
                  (make-array '(2 3)
                              :element-type 'single-float
                              :initial-contents
-                             '((0.0 0.0 0.0) (0.0 1.0 1.0)))
-                 (make-camera)
+                             '((0.0 0.0 0.0) (0.0 0.0 2.0)))
+                 (make-scene)
                  (rtg-math.vector3:make 3.0 3.0 3.0))))
       (setf (gtk4:window-child window) area))
     (unless (gtk4:widget-visible-p window)

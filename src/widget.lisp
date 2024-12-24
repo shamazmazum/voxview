@@ -77,11 +77,11 @@
     (gl:delete-program (gl-state-program gl-state))
     (values)))
 
-(sera:-> make-draw-handler (gl-state camera (model *))
+(sera:-> make-draw-handler (gl-state scene (model *))
          (values (sera:-> (gir::object-instance gir::object-instance)
                           (values boolean &optional))
                  &optional))
-(defun make-draw-handler (gl-state camera model)
+(defun make-draw-handler (gl-state scene model)
   (lambda (area context)
     (declare (ignore context))
     ;; Clear buffers
@@ -96,7 +96,7 @@
            (let* ((allocation (gtk4:widget-allocation area))
                   (width  (gir:field allocation 'width))
                   (height (gir:field allocation 'height)))
-             (world->screen camera width height))))
+             (world->screen scene width height))))
       (gl:uniform-matrix
        (gl-state-trans-loc gl-state)
        4 (vector world->screen) nil))
@@ -121,13 +121,13 @@
     ;; T indicates that we are done
     t))
 
-(sera:-> make-drawing-area ((model *) camera rtg-math.types:vec3)
+(sera:-> make-drawing-area ((model *) scene rtg-math.types:vec3)
          (values gir::object-instance &optional))
-(defun make-drawing-area (model camera nvoxels)
+(defun make-drawing-area (model scene nvoxels)
   (let ((area (gtk4:make-gl-area))
         (gl-state (make-gl-state)))
     (setf (gtk4:gl-area-allowed-apis area) 1) ; OpenGL Only
     (gtk4:connect area "realize"   (make-realize-handler   gl-state model nvoxels))
     (gtk4:connect area "unrealize" (make-unrealize-handler gl-state))
-    (gtk4:connect area "render"    (make-draw-handler      gl-state camera model))
+    (gtk4:connect area "render"    (make-draw-handler      gl-state scene model))
     area))
