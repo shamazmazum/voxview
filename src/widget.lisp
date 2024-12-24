@@ -17,6 +17,10 @@
                      (lcolor-loc  gl-state-lcolor-loc))
         gl-state
 
+      ;; Enable depth test
+      (gl:enable :depth-test :cull-face)
+      (gl:clear-color 0.0 0.0 0.0 0.0)
+
       ;; Create program
       (setf program (gl:create-program))
       (let ((vertex-shader   (gl:create-shader :vertex-shader))
@@ -97,11 +101,7 @@
   (lambda (area context)
     (declare (ignore context))
     ;; Clear buffers
-    (gl:clear-color 1.0 1.0 1.0 1.0)
-    (gl:clear :color-buffer-bit)
-    (gl:clear-color 0.0 0.0 0.0 0.0)
-    (gl:clear :depth-buffer-bit)
-    (gl:enable :depth-test :cull-face)
+    (gl:clear :color-buffer-bit :depth-buffer-bit)
 
     ;; Set uniforms
     (let ((world->screen
@@ -159,7 +159,8 @@
 (defun make-drawing-area (model scene nvoxels)
   (let ((area (gtk4:make-gl-area))
         (gl-state (make-gl-state)))
-    (setf (gtk4:gl-area-allowed-apis area) 1) ; OpenGL Only
+    (setf (gtk4:gl-area-allowed-apis area) 1         ; OpenGL Only
+          (gtk4:gl-area-has-depth-buffer-p area) t)  ; Enable depth buffer
     (gtk4:connect area "realize"   (make-realize-handler   gl-state model nvoxels))
     (gtk4:connect area "unrealize" (make-unrealize-handler gl-state))
     (gtk4:connect area "render"    (make-draw-handler      gl-state scene model))
