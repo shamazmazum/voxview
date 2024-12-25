@@ -30,6 +30,7 @@
                                     :application gtk4:*application*))
     (setf (gtk4:window-title window) "Voxview")
     (let* ((scene (make-scene))
+           (light-follows-camera-p nil)
            (area (make-drawing-area *tmp-model* scene
                                     (rtg-math.vector3:make 128.0 128.0 128.0)))
            (control-frame (gtk4:make-frame :label "Controls"))
@@ -58,7 +59,8 @@
            (light-ψ (scale (+ (- (/ pi 2)) 0.01)
                            (- (+ (/ pi 2)) 0.01)
                            (scene-light-ψ scene)
-                           1d-2)))
+                           1d-2))
+           (follow-camera (gtk4:make-check-button :label "Follow camera")))
 
       (setf (gtk4:window-child window) toplevel-box
             (gtk4:frame-child control-frame) control-box
@@ -77,17 +79,35 @@
 
       (append-with-label light-box light-ϕ "ϕ")
       (append-with-label light-box light-ψ "ψ")
+      (gtk4:box-append   light-box follow-camera)
+
+      ;; Connect follow camera signal
+      (gtk4:connect follow-camera "toggled"
+                    (lambda (widget)
+                      (declare (ignore widget))
+                      (let ((state (gtk4:check-button-active-p follow-camera)))
+                        (setf (gtk4:widget-sensitive-p light-ϕ) (not state)
+                              (gtk4:widget-sensitive-p light-ψ) (not state)
+                              light-follows-camera-p state))
+                      (when light-follows-camera-p
+                        (setf (gtk4:range-value light-ϕ)
+                              (gtk4:range-value camera-ϕ)
+                              (gtk4:range-value light-ψ)
+                              (gtk4:range-value camera-ψ)))))
 
       ;; Connect scale signals
-      (macrolet ((%go (scale setter)
+      (macrolet ((%go (scale setter &optional aux-scale)
                    `(gtk4:connect ,scale "value-changed"
                                   (lambda (widget)
                                     (declare (ignore widget))
-                                    (let ((value (float (gtk4:range-value ,scale) 0f0)))
-                                      (setf (,setter scene) value))
+                                    (let ((value (gtk4:range-value ,scale)))
+                                      (setf (,setter scene) (float value 0f0))
+                                      ,@(when aux-scale
+                                          `((when light-follows-camera-p
+                                              (setf (gtk4:range-value ,aux-scale) value)))))
                                     (gtk4:gl-area-queue-render area)))))
-        (%go camera-ϕ scene-camera-ϕ)
-        (%go camera-ψ scene-camera-ψ)
+        (%go camera-ϕ scene-camera-ϕ light-ϕ)
+        (%go camera-ψ scene-camera-ψ light-ψ)
         (%go camera-r scene-camera-r)
         (%go light-ϕ  scene-light-ϕ)
         (%go light-ψ  scene-light-ψ)))
