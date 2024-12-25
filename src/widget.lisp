@@ -120,7 +120,7 @@
        (aref color 1)
        (aref color 2)))
 
-    (let ((position (scene-light-position scene)))
+    (let ((position (object-position 2.0 (scene-light-ϕ scene) (scene-light-ψ scene))))
       (gl:uniformf
        (gl-state-lpos-loc gl-state)
        (aref position 0)
