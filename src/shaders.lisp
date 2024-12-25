@@ -33,7 +33,7 @@
             (cosphi (/ (vari:dot r normal) (vari:length r))))
        (vari:vec4
         (* light-color
-           (+ 0.1 (* 0.9 (vari:clamp cosphi 0 1))))
+           (+ 0.2 (* 0.8 (vari:clamp cosphi 0 1))))
         1)))))
 
 (defparameter *compiled-shaders*
