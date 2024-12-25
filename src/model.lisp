@@ -40,7 +40,9 @@
                 :initial-contents list)))
 
 (sera:-> load-model ((or string pathname))
-         (values (model *) &optional))
+         (values (model *) rtg-math.types:vec3 &optional))
 (defun load-model (filename)
-  (compute-boundary
-   (load-data filename)))
+  (let ((data (load-data filename)))
+    (values
+     (compute-boundary data)
+     (apply #'rtg-math.vector3:make (mapcar #'float (array-dimensions data))))))

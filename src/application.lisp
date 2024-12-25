@@ -60,7 +60,8 @@
                            (- (+ (/ pi 2)) 0.01)
                            (scene-light-ψ scene)
                            1d-2))
-           (follow-camera (gtk4:make-check-button :label "Follow camera")))
+           (follow-camera (gtk4:make-check-button :label "Follow camera"))
+           (open-model (gtk4:make-button :label "Open model")))
 
       (setf (gtk4:window-child window) toplevel-box
             (gtk4:frame-child control-frame) control-box
@@ -72,6 +73,7 @@
       (gtk4:box-append toplevel-box control-frame)
       (gtk4:box-append control-box camera-frame)
       (gtk4:box-append control-box light-frame)
+      (gtk4:box-append control-box open-model)
 
       (append-with-label camera-box camera-ϕ "ϕ")
       (append-with-label camera-box camera-ψ "ψ")
@@ -110,7 +112,34 @@
         (%go camera-ψ scene-camera-ψ light-ψ)
         (%go camera-r scene-camera-r)
         (%go light-ϕ  scene-light-ϕ)
-        (%go light-ψ  scene-light-ψ)))
+        (%go light-ψ  scene-light-ψ))
+
+      (gtk4:connect open-model "clicked"
+                    (lambda (widget)
+                      (declare (ignore widget))
+                      (let ((dialog (gtk4:make-file-chooser-native
+                                     :title "Choose a model"
+                                     :parent window
+                                     :action gtk4:+file-chooser-action-open+
+                                     :accept-label "Open"
+                                     :cancel-label "Cancel")))
+                        ;; TODO: Rework filtering
+                        (let ((filter (gtk4:make-file-filter)))
+                          (gtk4:file-filter-add-suffix filter "npy")
+                          (setf (gtk4:file-filter-name filter) "Numpy arrays (.npy)")
+                          (gtk4:file-chooser-add-filter dialog filter))
+
+                        (gtk4:connect dialog "response"
+                                      (lambda (widget response)
+                                        (declare (ignore widget))
+                                        (when (= response gtk4:+response-type-accept+)
+                                          (let ((file (gio:file-path
+                                                       (gtk4:file-chooser-file dialog))))
+                                            (multiple-value-bind (model nvoxels)
+                                                (load-model file)
+                                              (declare (ignore model))
+                                              (print nvoxels))))))
+                        (gtk4:native-dialog-show dialog)))))
 
     (unless (gtk4:widget-visible-p window)
       (gtk4:window-present window))))
