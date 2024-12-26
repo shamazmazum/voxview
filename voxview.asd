@@ -20,4 +20,8 @@
                  :rtg-math
                  :alexandria
                  :serapeum
-                 :numpy-npy))
+                 :numpy-npy
+
+                 :cl-value-noise
+                 :stateless-iterators
+                 :array-operations))

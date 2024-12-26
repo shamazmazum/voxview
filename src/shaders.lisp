@@ -27,13 +27,17 @@
    '((coord  :vec3)
      (normal :vec3))
    '((light-position :vec3)
-     (light-color    :vec3))
+     (light-color    :vec3)
+     (sampler        :sampler-3d))
    '(:450)
    '((let* ((r (- light-position coord))
-            (cosphi (/ (vari:dot r normal) (vari:length r))))
+            (cosphi (/ (vari:dot r normal) (vari:length r)))
+            (texture-coord (/ (1+ coord) 2))
+            (texture-color (vari:swizzle (vari:texture sampler texture-coord) :r)))
        (vari:vec4
-        (* light-color
-           (+ 0.2 (* 0.8 (vari:clamp cosphi 0 1))))
+        (+
+         (* 0.3 light-color (vari:clamp cosphi 0 1))
+         (* 0.7 texture-color))
         1)))))
 
 (defparameter *compiled-shaders*

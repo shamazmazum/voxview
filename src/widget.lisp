@@ -36,7 +36,8 @@
                      (vao         gl-state-vao)
                      (posbuffer   gl-state-posbuffer)
                      (vertbuffer  gl-state-vertbuffer)
-                     (normbuffer  gl-state-normbuffer))
+                     (normbuffer  gl-state-normbuffer)
+                     (texture     gl-state-texture))
         gl-state
 
       ;; Enable depth test
@@ -81,7 +82,21 @@
       (setf normbuffer (gl:gen-buffer))
       (gl:bind-buffer :array-buffer normbuffer)
       (with-gl-array (normarray *cube-normals*)
-        (gl:buffer-data :array-buffer :static-draw normarray)))
+        (gl:buffer-data :array-buffer :static-draw normarray))
+
+      ;; Create texture
+      (setf texture (gl:gen-texture))
+      (gl:bind-texture :texture-3d texture)
+      (gl:tex-image-3d :texture-3d 0 :red
+                       (array-dimension *noise* 0)
+                       (array-dimension *noise* 1)
+                       (array-dimension *noise* 2)
+                       0 :red :float (aops:flatten *noise*))
+      (gl:tex-parameter :texture-3d :texture-mag-filter :nearest)
+      (gl:tex-parameter :texture-3d :texture-min-filter :nearest)
+      (gl:tex-parameter :texture-3d :texture-wrap-s :mirrored-repeat)
+      (gl:tex-parameter :texture-3d :texture-wrap-t :mirrored-repeat)
+      (gl:tex-parameter :texture-3d :texture-wrap-r :mirrored-repeat))
     (values)))
 
 (sera:-> make-unrealize-handler (gl-state)
@@ -89,6 +104,7 @@
 (defun make-unrealize-handler (gl-state)
   (lambda (area)
     (gtk4:gl-area-make-current area)
+    (gl:delete-texture (gl-state-texture gl-state))
     (gl:delete-buffers (list (gl-state-vertbuffer gl-state)
                              (gl-state-posbuffer  gl-state)
                              (gl-state-normbuffer gl-state)))
@@ -135,6 +151,14 @@
          (aref position 0)
          (aref position 1)
          (aref position 2)))
+
+      ;; Texture sampler
+      (gl:uniformi
+       (gl:get-uniform-location (gl-state-program gl-state) "SAMPLER") 0)
+
+      ;; Activate the texture
+      (gl:active-texture :texture0)
+      (gl:bind-texture :texture-3d (gl-state-texture gl-state))
 
       ;; Draw
       (gl:enable-vertex-attrib-array 0)

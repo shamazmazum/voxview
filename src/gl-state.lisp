@@ -12,7 +12,7 @@
   (light-ψ 0.0 :type single-float)
 
   ;; Light color
-  (light-color (rtg-math.vector3:make 1.0 0.0 1.0)
+  (light-color (rtg-math.vector3:make 1.0 1.0 1.0)
                :type rtg-math.types:vec3)
 
   ;; Scene parameters
@@ -23,7 +23,8 @@
   (vao         -1 :type fixnum)
   (posbuffer   -1 :type fixnum)
   (vertbuffer  -1 :type fixnum)
-  (normbuffer  -1 :type fixnum))
+  (normbuffer  -1 :type fixnum)
+  (texture     -1 :type fixnum))
 
 (sera:-> object-position (single-float single-float single-float)
          (values rtg-math.types:vec3 &optional))
@@ -73,3 +74,20 @@ dimensions of the GtkGLArea widget."
                      (scene-camera-ϕ scene)
                      (scene-camera-ψ scene))
     (rtg-math.vector3:make 0.0 0.0 0.0))))
+
+;; Voxel texture
+(sera:-> create-noise (alex:positive-fixnum single-float fixnum)
+         (values (simple-array single-float (* * *)) &optional))
+(defun create-noise (side scale seed)
+  (declare (optimize (speed 3)))
+  (let ((noise (make-array (list side side side)
+                           :element-type 'single-float)))
+    (si:do-iterator (index (si:indices (array-dimensions noise)))
+      (let ((coords (mapcar (lambda (n) (/ (* scale n) side)) index)))
+        (flet ((noise (x y z)
+                 (cl-value-noise:value-noise x y z :seed seed :octaves 7)))
+          (setf (apply #'aref noise index)
+                (apply #'noise coords)))))
+    noise))
+
+(defparameter *noise*  (create-noise 128 20.0 43543))
