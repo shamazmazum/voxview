@@ -19,7 +19,11 @@
   (nvoxels  0 :type fixnum))
 
 (defstruct gl-state
+  ;; Pass 0: A shadow map
   (pass-0      -1 :type fixnum)
+  (framebuffer -1 :type fixnum)
+  (shadowmap   -1 :type fixnum)
+  ;; Pass 1: actual rendering
   (pass-1      -1 :type fixnum)
   (vao         -1 :type fixnum)
   (posbuffer   -1 :type fixnum)

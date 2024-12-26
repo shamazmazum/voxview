@@ -1,5 +1,9 @@
 (in-package :voxview)
 
+(declaim (type alex:positive-fixnum +shadow-width+ +shadow-height+))
+(defconstant +shadow-width+  1500)
+(defconstant +shadow-height+ 1500)
+
 (deftype model-loader () '(sera:-> ((model *) rtg-math.types:vec3) (values &optional)))
 
 (sera:-> make-model-loader (gir::object-instance gl-state scene)
@@ -37,7 +41,9 @@
                      (vao         gl-state-vao)
                      (posbuffer   gl-state-posbuffer)
                      (vertbuffer  gl-state-vertbuffer)
-                     (normbuffer  gl-state-normbuffer))
+                     (normbuffer  gl-state-normbuffer)
+                     (framebuffer gl-state-framebuffer)
+                     (shadowmap   gl-state-shadowmap))
         gl-state
 
       ;; Enable depth test
@@ -52,20 +58,36 @@
       (setf vao (gl:gen-vertex-array))
       (gl:bind-vertex-array vao)
 
+      ;; Create voxel position buffer
+      (setf posbuffer (gl:gen-buffer))
+
       ;; Fill model vertices
       (setf vertbuffer (gl:gen-buffer))
       (gl:bind-buffer :array-buffer vertbuffer)
       (with-gl-array (vertarray *cube-vertices*)
         (gl:buffer-data :array-buffer :static-draw vertarray))
 
-      ;; Create voxel position buffer
-      (setf posbuffer (gl:gen-buffer))
-
       ;; Fill normals
       (setf normbuffer (gl:gen-buffer))
       (gl:bind-buffer :array-buffer normbuffer)
       (with-gl-array (normarray *cube-normals*)
-        (gl:buffer-data :array-buffer :static-draw normarray)))
+        (gl:buffer-data :array-buffer :static-draw normarray))
+
+      ;; Prepare shadowmap
+      (setf framebuffer (gl:gen-framebuffer))
+      (setf shadowmap (gl:gen-texture))
+      (gl:bind-texture :texture-2d shadowmap)
+      (gl:tex-image-2d :texture-2d 0 :depth-component +shadow-width+ +shadow-height+ 0
+                       :depth-component :float (cffi:null-pointer))
+      (gl:tex-parameter :texture-2d :texture-min-filter :nearest)
+      (gl:tex-parameter :texture-2d :texture-mag-filter :nearest)
+      (gl:tex-parameter :texture-2d :texture-wrap-s :repeat)
+      (gl:tex-parameter :texture-2d :texture-wrap-t :repeat)
+      (gl:bind-framebuffer :framebuffer framebuffer)
+      (gl:framebuffer-texture-2d :framebuffer :depth-attachment :texture-2d shadowmap 0)
+      (gl:draw-buffer :none)
+      (gl:read-buffer :none))
+
     (values)))
 
 (sera:-> make-unrealize-handler (gl-state)
@@ -73,6 +95,8 @@
 (defun make-unrealize-handler (gl-state)
   (lambda (area)
     (gtk4:gl-area-make-current area)
+    (gl:delete-texture (gl-state-shadowmap gl-state))
+    (gl:delete-framebuffer (gl-state-framebuffer gl-state))
     (gl:delete-buffers (list (gl-state-vertbuffer gl-state)
                              (gl-state-posbuffer  gl-state)
                              (gl-state-normbuffer gl-state)))
