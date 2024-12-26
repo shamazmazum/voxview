@@ -5,7 +5,8 @@
   (varjo:make-stage
    :vertex
    '((position :vec3)   ; Position of a voxel in the world system, changed once by an instance
-     (vertex   :vec3))  ; Position of a voxel's vertex in the model system
+     (vertex   :vec3)   ; Position of a voxel's vertex in the model system
+     (normal   :vec3))  ; Normals. Ignored
    '((transform :mat4)  ; World -> Light source transform
      (nvoxels   :vec3)) ; Model space dimensions (in voxels)
    '(:450)

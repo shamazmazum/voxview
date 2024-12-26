@@ -149,7 +149,7 @@
          ;; Pass 0: Render shadows
          (gl:bind-framebuffer :framebuffer (gl-state-framebuffer gl-state))
          (gl:viewport 0 0 +shadow-width+ +shadow-height+)
-         (gl:clear :depth-buffer)
+         (gl:clear :depth-buffer-bit)
          (gl:use-program (gl-state-pass-0 gl-state))
 
          ;; Set light space projection matrix
@@ -187,7 +187,7 @@
          ;; TODO: remove boilerplate
          (let ((world->light (world->light scene +shadow-width+ +shadow-height+)))
            (gl:uniform-matrix
-            (gl:get-uniform-location (gl-state-pass-0 gl-state) "L_TRANSFORM")
+            (gl:get-uniform-location (gl-state-pass-1 gl-state) "L_TRANSFORM")
             4 (vector world->light) nil))
 
          ;; Light color
