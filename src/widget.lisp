@@ -137,13 +137,13 @@
          (aref color 1)
          (aref color 2)))
 
-      ;; Light position
-      (let ((position (object-position 2.0 (scene-light-ϕ scene) (scene-light-ψ scene))))
+      ;; Negated light direction
+      (let ((direction (object-position 2.0 (scene-light-ϕ scene) (scene-light-ψ scene))))
         (gl:uniformf
-         (gl:get-uniform-location (gl-state-pass-1 gl-state) "LIGHT_POSITION")
-         (aref position 0)
-         (aref position 1)
-         (aref position 2)))
+         (gl:get-uniform-location (gl-state-pass-1 gl-state) "LIGHT_DIRECTION")
+         (aref direction 0)
+         (aref direction 1)
+         (aref direction 2)))
 
       ;; Draw
       (gl:enable-vertex-attrib-array 0)

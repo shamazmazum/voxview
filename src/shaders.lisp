@@ -47,20 +47,17 @@
                       (* vertex (+ eps recip)))))
        (values
         (* transform (vari:vec4 coord 1)) ; gl_Position
-        coord                             ; Vertex coordinate in the world space
         normal)))))
 
 (declaim (type varjo.internals:fragment-stage *fragment-pass-1*))
 (defparameter *fragment-pass-1*
   (varjo:make-stage
    :fragment
-   '((coord  :vec3)
-     (normal :vec3))
-   '((light-position :vec3)
+   '((normal :vec3))
+   '((light-direction :vec3)
      (light-color    :vec3))
    '(:450)
-   '((let* ((r (- light-position coord))
-            (cosphi (/ (vari:dot r normal) (vari:length r))))
+   '((let ((cosphi (vari:dot light-direction normal)))
        (vari:vec4
         (* light-color
            (+ 0.2 (* 0.8 (vari:clamp cosphi 0 1))))
