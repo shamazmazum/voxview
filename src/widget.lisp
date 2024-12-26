@@ -172,15 +172,23 @@
 
          ;; Set uniforms
          (gl:use-program (gl-state-pass-1 gl-state))
-         ;; Projection
+
+         ;; Camera projection
          (let ((world->screen
                 (let* ((allocation (gtk4:widget-allocation area))
                        (width  (gir:field allocation 'width))
                        (height (gir:field allocation 'height)))
                   (world->screen scene width height))))
            (gl:uniform-matrix
-            (gl:get-uniform-location (gl-state-pass-1 gl-state) "TRANSFORM")
+            (gl:get-uniform-location (gl-state-pass-1 gl-state) "W_TRANSFORM")
             4 (vector world->screen) nil))
+
+         ;; Light projection
+         ;; TODO: remove boilerplate
+         (let ((world->light (world->light scene +shadow-width+ +shadow-height+)))
+           (gl:uniform-matrix
+            (gl:get-uniform-location (gl-state-pass-0 gl-state) "L_TRANSFORM")
+            4 (vector world->light) nil))
 
          ;; Light color
          (let ((color (scene-light-color scene)))
@@ -197,6 +205,14 @@
             (aref direction 0)
             (aref direction 1)
             (aref direction 2)))
+
+         ;; Sampler
+         (gl:uniformi
+          (gl:get-uniform-location (gl-state-pass-1 gl-state) "SAMPLER") 0)
+
+         ;; Activate the shadowmap
+         (gl:active-texture :texture0)
+         (gl:bind-texture :texture-2d (gl-state-shadowmap gl-state))
 
          ;; Render pass 1
          (render-scene gl-state scene))
