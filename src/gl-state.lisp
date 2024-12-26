@@ -11,9 +11,12 @@
   (light-ϕ 0.0 :type single-float)
   (light-ψ 0.0 :type single-float)
 
-    ;; Light color
+  ;; Light color
   (light-color (rtg-math.vector3:make 1.0 0.0 1.0)
-               :type rtg-math.types:vec3))
+               :type rtg-math.types:vec3)
+
+  ;; Scene parameters
+  (nvoxels  0 :type fixnum))
 
 (defstruct gl-state
   (program     -1 :type fixnum)

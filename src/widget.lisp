@@ -1,8 +1,34 @@
 (in-package :voxview)
 
-(sera:-> make-realize-handler (gl-state (model *) rtg-math.types:vec3)
+(deftype model-loader () '(sera:-> ((model *) rtg-math.types:vec3) (values &optional)))
+
+(sera:-> make-model-loader (gir::object-instance gl-state scene)
+         (values model-loader &optional))
+(defun make-model-loader (area gl-state scene)
+  (lambda (model dimensions)
+    (gtk4:gl-area-make-current area)
+
+    ;; Fill voxel positions buffer
+    (gl:bind-buffer :array-buffer (gl-state-posbuffer gl-state))
+    (with-gl-array (posarray model)
+      (gl:buffer-data :array-buffer :static-draw posarray))
+
+    ;; Set number of voxels
+    (setf (scene-nvoxels scene)
+          (array-dimension model 0))
+
+    ;; Set model dimensions
+    (gl:use-program (gl-state-program gl-state))
+    (gl:uniformf
+     (gl-state-nvoxels-loc gl-state)
+     (aref dimensions 0)
+     (aref dimensions 1)
+     (aref dimensions 2))
+    (values)))
+
+(sera:-> make-realize-handler (gl-state)
          (values (sera:-> (gir::object-instance) (values &optional)) &optional))
-(defun make-realize-handler (gl-state model nvoxels)
+(defun make-realize-handler (gl-state)
   (lambda (area)
     (gtk4:gl-area-make-current area)
 
@@ -52,11 +78,8 @@
       (with-gl-array (vertarray *cube-vertices*)
         (gl:buffer-data :array-buffer :static-draw vertarray))
 
-      ;; Fill voxel positions
+      ;; Create voxel position buffer
       (setf posbuffer (gl:gen-buffer))
-      (gl:bind-buffer :array-buffer posbuffer)
-      (with-gl-array (posarray model)
-        (gl:buffer-data :array-buffer :static-draw posarray))
 
       ;; Fill normals
       (setf normbuffer (gl:gen-buffer))
@@ -68,17 +91,7 @@
       (setf trans-loc   (gl:get-uniform-location program "TRANSFORM")
             nvoxels-loc (gl:get-uniform-location program "NVOXELS")
             lpos-loc    (gl:get-uniform-location program "LIGHT_POSITION")
-            lcolor-loc  (gl:get-uniform-location program "LIGHT_COLOR"))
-
-      ;; Use our only program
-      (gl:use-program program)
-
-      ;; Set model dimensions
-      (gl:uniformf nvoxels-loc
-                   (aref nvoxels 0)
-                   (aref nvoxels 1)
-                   (aref nvoxels 2)))
-
+            lcolor-loc  (gl:get-uniform-location program "LIGHT_COLOR")))
     (values)))
 
 (sera:-> make-unrealize-handler (gl-state)
@@ -93,75 +106,80 @@
     (gl:delete-program (gl-state-program gl-state))
     (values)))
 
-(sera:-> make-draw-handler (gl-state scene (model *))
+(sera:-> make-draw-handler (gl-state scene)
          (values (sera:-> (gir::object-instance gir::object-instance)
                           (values boolean &optional))
                  &optional))
-(defun make-draw-handler (gl-state scene model)
+(defun make-draw-handler (gl-state scene)
   (lambda (area context)
     (declare (ignore context))
     ;; Clear buffers
     (gl:clear :color-buffer-bit :depth-buffer-bit)
 
-    ;; Set uniforms
-    (let ((world->screen
-           (let* ((allocation (gtk4:widget-allocation area))
-                  (width  (gir:field allocation 'width))
-                  (height (gir:field allocation 'height)))
-             (world->screen scene width height))))
-      (gl:uniform-matrix
-       (gl-state-trans-loc gl-state)
-       4 (vector world->screen) nil))
+    (unless (zerop (scene-nvoxels scene))
 
-    (let ((color (scene-light-color scene)))
-      (gl:uniformf
-       (gl-state-lcolor-loc gl-state)
-       (aref color 0)
-       (aref color 1)
-       (aref color 2)))
+      ;; Set uniforms
+      (gl:use-program (gl-state-program gl-state))
+      ;; Projection
+      (let ((world->screen
+             (let* ((allocation (gtk4:widget-allocation area))
+                    (width  (gir:field allocation 'width))
+                    (height (gir:field allocation 'height)))
+               (world->screen scene width height))))
+        (gl:uniform-matrix
+         (gl-state-trans-loc gl-state)
+         4 (vector world->screen) nil))
 
-    (let ((position (object-position 2.0 (scene-light-ϕ scene) (scene-light-ψ scene))))
-      (gl:uniformf
-       (gl-state-lpos-loc gl-state)
-       (aref position 0)
-       (aref position 1)
-       (aref position 2)))
+      ;; Light color
+      (let ((color (scene-light-color scene)))
+        (gl:uniformf
+         (gl-state-lcolor-loc gl-state)
+         (aref color 0)
+         (aref color 1)
+         (aref color 2)))
 
-    ;; Draw
-    (gl:enable-vertex-attrib-array 0)
-    (gl:bind-buffer :array-buffer (gl-state-posbuffer gl-state))
-    (gl:vertex-attrib-pointer 0 3 :float nil 0
-                              (cffi:null-pointer))
-    ;; FIXME: Why %gl?
-    (%gl:vertex-attrib-divisor 0 1)
+      ;; Light position
+      (let ((position (object-position 2.0 (scene-light-ϕ scene) (scene-light-ψ scene))))
+        (gl:uniformf
+         (gl-state-lpos-loc gl-state)
+         (aref position 0)
+         (aref position 1)
+         (aref position 2)))
 
-    (gl:enable-vertex-attrib-array 1)
-    (gl:bind-buffer :array-buffer (gl-state-vertbuffer gl-state))
-    (gl:vertex-attrib-pointer 1 3 :float nil 0
-                              (cffi:null-pointer))
+      ;; Draw
+      (gl:enable-vertex-attrib-array 0)
+      (gl:bind-buffer :array-buffer (gl-state-posbuffer gl-state))
+      (gl:vertex-attrib-pointer 0 3 :float nil 0
+                                (cffi:null-pointer))
+      ;; FIXME: Why %gl?
+      (%gl:vertex-attrib-divisor 0 1)
 
-    (gl:enable-vertex-attrib-array 2)
-    (gl:bind-buffer :array-buffer (gl-state-normbuffer gl-state))
-    (gl:vertex-attrib-pointer 2 3 :float nil 0
-                              (cffi:null-pointer))
-    (gl:draw-arrays-instanced :triangles 0
-                              (array-dimension *cube-vertices* 0)
-                              (array-dimension model 0))
-    (gl:disable-vertex-attrib-array 2)
-    (gl:disable-vertex-attrib-array 1)
-    (gl:disable-vertex-attrib-array 0)
+      (gl:enable-vertex-attrib-array 1)
+      (gl:bind-buffer :array-buffer (gl-state-vertbuffer gl-state))
+      (gl:vertex-attrib-pointer 1 3 :float nil 0
+                                (cffi:null-pointer))
 
-    ;; T indicates that we are done
-    t))
+      (gl:enable-vertex-attrib-array 2)
+      (gl:bind-buffer :array-buffer (gl-state-normbuffer gl-state))
+      (gl:vertex-attrib-pointer 2 3 :float nil 0
+                                (cffi:null-pointer))
+      (gl:draw-arrays-instanced :triangles 0
+                                (array-dimension *cube-vertices* 0)
+                                (scene-nvoxels scene))
+      (gl:disable-vertex-attrib-array 2)
+      (gl:disable-vertex-attrib-array 1)
+      (gl:disable-vertex-attrib-array 0)
+      ;; T indicates that we are done
+      t)))
 
-(sera:-> make-drawing-area ((model *) scene rtg-math.types:vec3)
-         (values gir::object-instance &optional))
-(defun make-drawing-area (model scene nvoxels)
+(sera:-> make-drawing-area (scene)
+         (values gir::object-instance (sera:-> ((model *)) (values &optional)) &optional))
+(defun make-drawing-area (scene)
   (let ((area (gtk4:make-gl-area))
         (gl-state (make-gl-state)))
     (setf (gtk4:gl-area-allowed-apis area) 1         ; OpenGL Only
           (gtk4:gl-area-has-depth-buffer-p area) t)  ; Enable depth buffer
-    (gtk4:connect area "realize"   (make-realize-handler   gl-state model nvoxels))
+    (gtk4:connect area "realize"   (make-realize-handler   gl-state))
     (gtk4:connect area "unrealize" (make-unrealize-handler gl-state))
-    (gtk4:connect area "render"    (make-draw-handler      gl-state scene model))
-    area))
+    (gtk4:connect area "render"    (make-draw-handler      gl-state scene))
+    (values area (make-model-loader area gl-state scene))))

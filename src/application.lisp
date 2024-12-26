@@ -1,8 +1,5 @@
 (in-package :voxview)
 
-(defparameter *tmp-model*
-  (load-model "~/test/grains/blobs-neuro/concave/blob-321-oc.npy"))
-
 (defun expand-horizontally (widget)
   (setf (gtk4:widget-hexpand-p widget) t
         (gtk4:widget-halign    widget) gtk4:+align-fill+))
@@ -31,8 +28,9 @@
     (setf (gtk4:window-title window) "Voxview")
     (let* ((scene (make-scene))
            (light-follows-camera-p nil)
-           (area (make-drawing-area *tmp-model* scene
-                                    (rtg-math.vector3:make 128.0 128.0 128.0)))
+           (area-+-loader (multiple-value-call #'cons (make-drawing-area scene)))
+           (area   (car area-+-loader))
+           (loader (cdr area-+-loader))
            (control-frame (gtk4:make-frame :label "Controls"))
            (camera-frame (gtk4:make-frame :label "Camera"))
            (light-frame  (gtk4:make-frame :label "Light"))
@@ -137,8 +135,8 @@
                                                        (gtk4:file-chooser-file dialog))))
                                             (multiple-value-bind (model nvoxels)
                                                 (load-model file)
-                                              (declare (ignore model))
-                                              (print nvoxels))))))
+                                              (funcall loader model nvoxels)))
+                                          (gtk4:gl-area-queue-render area))))
                         (gtk4:native-dialog-show dialog)))))
 
     (unless (gtk4:widget-visible-p window)
