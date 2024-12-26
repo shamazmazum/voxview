@@ -23,11 +23,7 @@
   (vao         -1 :type fixnum)
   (posbuffer   -1 :type fixnum)
   (vertbuffer  -1 :type fixnum)
-  (normbuffer  -1 :type fixnum)
-  (trans-loc   -1 :type fixnum)
-  (nvoxels-loc -1 :type fixnum)
-  (lpos-loc    -1 :type fixnum)
-  (lcolor-loc  -1 :type fixnum))
+  (normbuffer  -1 :type fixnum))
 
 (sera:-> object-position (single-float single-float single-float)
          (values rtg-math.types:vec3 &optional))

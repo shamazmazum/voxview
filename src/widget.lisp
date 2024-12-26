@@ -20,7 +20,7 @@
     ;; Set model dimensions
     (gl:use-program (gl-state-program gl-state))
     (gl:uniformf
-     (gl-state-nvoxels-loc gl-state)
+     (gl:get-uniform-location (gl-state-program gl-state) "NVOXELS")
      (aref dimensions 0)
      (aref dimensions 1)
      (aref dimensions 2))
@@ -36,11 +36,7 @@
                      (vao         gl-state-vao)
                      (posbuffer   gl-state-posbuffer)
                      (vertbuffer  gl-state-vertbuffer)
-                     (normbuffer  gl-state-normbuffer)
-                     (trans-loc   gl-state-trans-loc)
-                     (nvoxels-loc gl-state-nvoxels-loc)
-                     (lpos-loc    gl-state-lpos-loc)
-                     (lcolor-loc  gl-state-lcolor-loc))
+                     (normbuffer  gl-state-normbuffer))
         gl-state
 
       ;; Enable depth test
@@ -85,13 +81,7 @@
       (setf normbuffer (gl:gen-buffer))
       (gl:bind-buffer :array-buffer normbuffer)
       (with-gl-array (normarray *cube-normals*)
-        (gl:buffer-data :array-buffer :static-draw normarray))
-
-      ;; Set locations of the uniforms
-      (setf trans-loc   (gl:get-uniform-location program "TRANSFORM")
-            nvoxels-loc (gl:get-uniform-location program "NVOXELS")
-            lpos-loc    (gl:get-uniform-location program "LIGHT_POSITION")
-            lcolor-loc  (gl:get-uniform-location program "LIGHT_COLOR")))
+        (gl:buffer-data :array-buffer :static-draw normarray)))
     (values)))
 
 (sera:-> make-unrealize-handler (gl-state)
@@ -127,13 +117,13 @@
                     (height (gir:field allocation 'height)))
                (world->screen scene width height))))
         (gl:uniform-matrix
-         (gl-state-trans-loc gl-state)
+         (gl:get-uniform-location (gl-state-program gl-state) "TRANSFORM")
          4 (vector world->screen) nil))
 
       ;; Light color
       (let ((color (scene-light-color scene)))
         (gl:uniformf
-         (gl-state-lcolor-loc gl-state)
+         (gl:get-uniform-location (gl-state-program gl-state) "LIGHT_COLOR")
          (aref color 0)
          (aref color 1)
          (aref color 2)))
@@ -141,7 +131,7 @@
       ;; Light position
       (let ((position (object-position 2.0 (scene-light-ϕ scene) (scene-light-ψ scene))))
         (gl:uniformf
-         (gl-state-lpos-loc gl-state)
+         (gl:get-uniform-location (gl-state-program gl-state) "LIGHT_POSITION")
          (aref position 0)
          (aref position 1)
          (aref position 2)))
