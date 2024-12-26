@@ -79,6 +79,25 @@ dimensions of the GtkGLArea widget."
                      (scene-camera-ψ scene))
     (rtg-math.vector3:make 0.0 0.0 0.0))))
 
+(sera:-> world->light
+         (scene alex:positive-fixnum alex:positive-fixnum)
+         (values rtg-math.types:mat4 &optional))
+(defun world->light (scene width height)
+  "Return world -> light projection matrix. WIDTH and HEIGHT are
+dimensions of the shadow map."
+  (rtg-math.matrix4:*
+   (rtg-math.projection:orthographic
+    (float width)
+    (float height)
+    0.1 3.0)
+   (rtg-math.matrix4:look-at
+    (rtg-math.vector3:make 0.0 1.0 0.0)
+    ;; FIXME: Must coincide with a number in MAKE-DRAW-HANDLER
+    (object-position 2.0
+                     (scene-light-ϕ scene)
+                     (scene-light-ψ scene))
+    (rtg-math.vector3:make 0.0 0.0 0.0))))
+
 (defun create-program (vertex fragment)
   (let* ((program (gl:create-program))
          (vertex-shader   (gl:create-shader :vertex-shader))

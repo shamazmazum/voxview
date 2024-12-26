@@ -22,12 +22,15 @@
           (array-dimension model 0))
 
     ;; Set model dimensions
-    (gl:use-program (gl-state-pass-1 gl-state))
-    (gl:uniformf
-     (gl:get-uniform-location (gl-state-pass-1 gl-state) "NVOXELS")
-     (aref dimensions 0)
-     (aref dimensions 1)
-     (aref dimensions 2))
+    (flet ((%go (program)
+             (gl:use-program program)
+             (gl:uniformf
+              (gl:get-uniform-location program "NVOXELS")
+              (aref dimensions 0)
+              (aref dimensions 1)
+              (aref dimensions 2))))
+      (%go (gl-state-pass-0 gl-state))
+      (%go (gl-state-pass-1 gl-state)))
     (values)))
 
 (sera:-> make-realize-handler (gl-state)
@@ -86,7 +89,8 @@
       (gl:bind-framebuffer :framebuffer framebuffer)
       (gl:framebuffer-texture-2d :framebuffer :depth-attachment :texture-2d shadowmap 0)
       (gl:draw-buffer :none)
-      (gl:read-buffer :none))
+      (gl:read-buffer :none)
+      (gl:bind-framebuffer :framebuffer 0))
 
     (values)))
 
@@ -105,6 +109,30 @@
     (gl:delete-program (gl-state-pass-1 gl-state))
     (values)))
 
+(defun render-scene (gl-state scene)
+  (gl:enable-vertex-attrib-array 0)
+  (gl:bind-buffer :array-buffer (gl-state-posbuffer gl-state))
+  (gl:vertex-attrib-pointer 0 3 :float nil 0
+                            (cffi:null-pointer))
+  (%gl:vertex-attrib-divisor 0 1)
+
+  (gl:enable-vertex-attrib-array 1)
+  (gl:bind-buffer :array-buffer (gl-state-vertbuffer gl-state))
+  (gl:vertex-attrib-pointer 1 3 :float nil 0
+                            (cffi:null-pointer))
+
+  (gl:enable-vertex-attrib-array 2)
+  (gl:bind-buffer :array-buffer (gl-state-normbuffer gl-state))
+  (gl:vertex-attrib-pointer 2 3 :float nil 0
+                            (cffi:null-pointer))
+  (gl:draw-arrays-instanced :triangles 0
+                            (array-dimension *cube-vertices* 0)
+                            (scene-nvoxels scene))
+  (gl:disable-vertex-attrib-array 2)
+  (gl:disable-vertex-attrib-array 1)
+  (gl:disable-vertex-attrib-array 0))
+  
+
 (sera:-> make-draw-handler (gl-state scene)
          (values (sera:-> (gir::object-instance gir::object-instance)
                           (values boolean &optional))
@@ -112,64 +140,68 @@
 (defun make-draw-handler (gl-state scene)
   (lambda (area context)
     (declare (ignore context))
-    ;; Clear buffers
-    (gl:clear :color-buffer-bit :depth-buffer-bit)
 
-    (unless (zerop (scene-nvoxels scene))
+    (cond
+      ((zerop (scene-nvoxels scene)) nil)
+      (t
+       ;; GTK reassigns the framebuffer almost each frame. This is really stupid
+       (let ((framebuffer (gl:get-integer :framebuffer-binding)))
+         ;; Pass 0: Render shadows
+         (gl:bind-framebuffer :framebuffer (gl-state-framebuffer gl-state))
+         (gl:viewport 0 0 +shadow-width+ +shadow-height+)
+         (gl:clear :depth-buffer)
+         (gl:use-program (gl-state-pass-0 gl-state))
 
-      ;; Set uniforms
-      (gl:use-program (gl-state-pass-1 gl-state))
-      ;; Projection
-      (let ((world->screen
-             (let* ((allocation (gtk4:widget-allocation area))
-                    (width  (gir:field allocation 'width))
-                    (height (gir:field allocation 'height)))
-               (world->screen scene width height))))
-        (gl:uniform-matrix
-         (gl:get-uniform-location (gl-state-pass-1 gl-state) "TRANSFORM")
-         4 (vector world->screen) nil))
+         ;; Set light space projection matrix
+         (let ((world->light (world->light scene +shadow-width+ +shadow-height+)))
+           (gl:uniform-matrix
+            (gl:get-uniform-location (gl-state-pass-0 gl-state) "TRANSFORM")
+            4 (vector world->light) nil))
 
-      ;; Light color
-      (let ((color (scene-light-color scene)))
-        (gl:uniformf
-         (gl:get-uniform-location (gl-state-pass-1 gl-state) "LIGHT_COLOR")
-         (aref color 0)
-         (aref color 1)
-         (aref color 2)))
+         ;; Render pass 0
+         (render-scene gl-state scene)
 
-      ;; Negated light direction
-      (let ((direction (object-position 2.0 (scene-light-ϕ scene) (scene-light-ψ scene))))
-        (gl:uniformf
-         (gl:get-uniform-location (gl-state-pass-1 gl-state) "LIGHT_DIRECTION")
-         (aref direction 0)
-         (aref direction 1)
-         (aref direction 2)))
+         ;; Pass 1: Render the scene from the viewer's perspective
+         (gl:bind-framebuffer :framebuffer framebuffer)
+         ;; TODO: Remove boilerplate
+         (let* ((allocation (gtk4:widget-allocation area))
+                (width  (gir:field allocation 'width))
+                (height (gir:field allocation 'height)))
+           (gl:viewport 0 0 width height))
+         (gl:clear :color-buffer-bit :depth-buffer-bit)
 
-      ;; Draw
-      (gl:enable-vertex-attrib-array 0)
-      (gl:bind-buffer :array-buffer (gl-state-posbuffer gl-state))
-      (gl:vertex-attrib-pointer 0 3 :float nil 0
-                                (cffi:null-pointer))
-      ;; FIXME: Why %gl?
-      (%gl:vertex-attrib-divisor 0 1)
+         ;; Set uniforms
+         (gl:use-program (gl-state-pass-1 gl-state))
+         ;; Projection
+         (let ((world->screen
+                (let* ((allocation (gtk4:widget-allocation area))
+                       (width  (gir:field allocation 'width))
+                       (height (gir:field allocation 'height)))
+                  (world->screen scene width height))))
+           (gl:uniform-matrix
+            (gl:get-uniform-location (gl-state-pass-1 gl-state) "TRANSFORM")
+            4 (vector world->screen) nil))
 
-      (gl:enable-vertex-attrib-array 1)
-      (gl:bind-buffer :array-buffer (gl-state-vertbuffer gl-state))
-      (gl:vertex-attrib-pointer 1 3 :float nil 0
-                                (cffi:null-pointer))
+         ;; Light color
+         (let ((color (scene-light-color scene)))
+           (gl:uniformf
+            (gl:get-uniform-location (gl-state-pass-1 gl-state) "LIGHT_COLOR")
+            (aref color 0)
+            (aref color 1)
+            (aref color 2)))
 
-      (gl:enable-vertex-attrib-array 2)
-      (gl:bind-buffer :array-buffer (gl-state-normbuffer gl-state))
-      (gl:vertex-attrib-pointer 2 3 :float nil 0
-                                (cffi:null-pointer))
-      (gl:draw-arrays-instanced :triangles 0
-                                (array-dimension *cube-vertices* 0)
-                                (scene-nvoxels scene))
-      (gl:disable-vertex-attrib-array 2)
-      (gl:disable-vertex-attrib-array 1)
-      (gl:disable-vertex-attrib-array 0)
-      ;; T indicates that we are done
-      t)))
+         ;; Negated light direction
+         (let ((direction (object-position 2.0 (scene-light-ϕ scene) (scene-light-ψ scene))))
+           (gl:uniformf
+            (gl:get-uniform-location (gl-state-pass-1 gl-state) "LIGHT_DIRECTION")
+            (aref direction 0)
+            (aref direction 1)
+            (aref direction 2)))
+
+         ;; Render pass 1
+         (render-scene gl-state scene))
+       ;; T indicates that we are done
+       t))))
 
 (sera:-> make-drawing-area (scene)
          (values gir::object-instance (sera:-> ((model *)) (values &optional)) &optional))
