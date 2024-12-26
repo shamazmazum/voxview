@@ -18,9 +18,9 @@
           (array-dimension model 0))
 
     ;; Set model dimensions
-    (gl:use-program (gl-state-program gl-state))
+    (gl:use-program (gl-state-pass-1 gl-state))
     (gl:uniformf
-     (gl-state-nvoxels-loc gl-state)
+     (gl:get-uniform-location (gl-state-pass-1 gl-state) "NVOXELS")
      (aref dimensions 0)
      (aref dimensions 1)
      (aref dimensions 2))
@@ -32,41 +32,21 @@
   (lambda (area)
     (gtk4:gl-area-make-current area)
 
-    (with-accessors ((program     gl-state-program)
+    (with-accessors ((pass-0      gl-state-pass-0)
+                     (pass-1      gl-state-pass-1)
                      (vao         gl-state-vao)
                      (posbuffer   gl-state-posbuffer)
                      (vertbuffer  gl-state-vertbuffer)
-                     (normbuffer  gl-state-normbuffer)
-                     (trans-loc   gl-state-trans-loc)
-                     (nvoxels-loc gl-state-nvoxels-loc)
-                     (lpos-loc    gl-state-lpos-loc)
-                     (lcolor-loc  gl-state-lcolor-loc))
+                     (normbuffer  gl-state-normbuffer))
         gl-state
 
       ;; Enable depth test
       (gl:enable :depth-test :cull-face)
       (gl:clear-color 0.0 0.0 0.0 0.0)
 
-      ;; Create program
-      (setf program (gl:create-program))
-      (let ((vertex-shader   (gl:create-shader :vertex-shader))
-            (fragment-shader (gl:create-shader :fragment-shader)))
-        (gl:shader-source vertex-shader   (varjo:glsl-code (first  *compiled-shaders*)))
-        (gl:shader-source fragment-shader (varjo:glsl-code (second *compiled-shaders*)))
-        (gl:compile-shader vertex-shader)
-        (gl:compile-shader fragment-shader)
-        (gl:attach-shader program vertex-shader)
-        (gl:attach-shader program fragment-shader)
-        (gl:link-program program)
-        (gl:detach-shader  program vertex-shader)
-        (gl:detach-shader program fragment-shader)
-        (gl:delete-shader vertex-shader)
-        (gl:delete-shader fragment-shader))
-
-      (let ((status (gl:get-program program :link-status)))
-        (unless status
-          (error "Program linkage failure: ~a"
-                 (gl:get-program-info-log program))))
+      ;; Create programs
+      (setf pass-0 (create-program (first *pass-0*) (second *pass-0*)))
+      (setf pass-1 (create-program (first *pass-1*) (second *pass-1*)))
 
       ;; Create vertex array
       (setf vao (gl:gen-vertex-array))
@@ -85,13 +65,7 @@
       (setf normbuffer (gl:gen-buffer))
       (gl:bind-buffer :array-buffer normbuffer)
       (with-gl-array (normarray *cube-normals*)
-        (gl:buffer-data :array-buffer :static-draw normarray))
-
-      ;; Set locations of the uniforms
-      (setf trans-loc   (gl:get-uniform-location program "TRANSFORM")
-            nvoxels-loc (gl:get-uniform-location program "NVOXELS")
-            lpos-loc    (gl:get-uniform-location program "LIGHT_POSITION")
-            lcolor-loc  (gl:get-uniform-location program "LIGHT_COLOR")))
+        (gl:buffer-data :array-buffer :static-draw normarray)))
     (values)))
 
 (sera:-> make-unrealize-handler (gl-state)
@@ -103,7 +77,8 @@
                              (gl-state-posbuffer  gl-state)
                              (gl-state-normbuffer gl-state)))
     (gl:delete-vertex-arrays (list (gl-state-vao gl-state)))
-    (gl:delete-program (gl-state-program gl-state))
+    (gl:delete-program (gl-state-pass-0 gl-state))
+    (gl:delete-program (gl-state-pass-1 gl-state))
     (values)))
 
 (sera:-> make-draw-handler (gl-state scene)
@@ -119,7 +94,7 @@
     (unless (zerop (scene-nvoxels scene))
 
       ;; Set uniforms
-      (gl:use-program (gl-state-program gl-state))
+      (gl:use-program (gl-state-pass-1 gl-state))
       ;; Projection
       (let ((world->screen
              (let* ((allocation (gtk4:widget-allocation area))
@@ -127,13 +102,13 @@
                     (height (gir:field allocation 'height)))
                (world->screen scene width height))))
         (gl:uniform-matrix
-         (gl-state-trans-loc gl-state)
+         (gl:get-uniform-location (gl-state-pass-1 gl-state) "TRANSFORM")
          4 (vector world->screen) nil))
 
       ;; Light color
       (let ((color (scene-light-color scene)))
         (gl:uniformf
-         (gl-state-lcolor-loc gl-state)
+         (gl:get-uniform-location (gl-state-pass-1 gl-state) "LIGHT_COLOR")
          (aref color 0)
          (aref color 1)
          (aref color 2)))
@@ -141,7 +116,7 @@
       ;; Light position
       (let ((position (object-position 2.0 (scene-light-ϕ scene) (scene-light-ψ scene))))
         (gl:uniformf
-         (gl-state-lpos-loc gl-state)
+         (gl:get-uniform-location (gl-state-pass-1 gl-state) "LIGHT_POSITION")
          (aref position 0)
          (aref position 1)
          (aref position 2)))

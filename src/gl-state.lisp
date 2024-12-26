@@ -19,15 +19,12 @@
   (nvoxels  0 :type fixnum))
 
 (defstruct gl-state
-  (program     -1 :type fixnum)
+  (pass-0      -1 :type fixnum)
+  (pass-1      -1 :type fixnum)
   (vao         -1 :type fixnum)
   (posbuffer   -1 :type fixnum)
   (vertbuffer  -1 :type fixnum)
-  (normbuffer  -1 :type fixnum)
-  (trans-loc   -1 :type fixnum)
-  (nvoxels-loc -1 :type fixnum)
-  (lpos-loc    -1 :type fixnum)
-  (lcolor-loc  -1 :type fixnum))
+  (normbuffer  -1 :type fixnum))
 
 (sera:-> object-position (single-float single-float single-float)
          (values rtg-math.types:vec3 &optional))
@@ -77,3 +74,25 @@ dimensions of the GtkGLArea widget."
                      (scene-camera-ϕ scene)
                      (scene-camera-ψ scene))
     (rtg-math.vector3:make 0.0 0.0 0.0))))
+
+(defun create-program (vertex fragment)
+  (let* ((program (gl:create-program))
+         (vertex-shader   (gl:create-shader :vertex-shader))
+         (fragment-shader (gl:create-shader :fragment-shader)))
+    (gl:shader-source vertex-shader   (varjo:glsl-code vertex))
+    (gl:shader-source fragment-shader (varjo:glsl-code fragment))
+    (gl:compile-shader vertex-shader)
+    (gl:compile-shader fragment-shader)
+    (gl:attach-shader program vertex-shader)
+    (gl:attach-shader program fragment-shader)
+    (gl:link-program program)
+    (gl:detach-shader  program vertex-shader)
+    (gl:detach-shader program fragment-shader)
+    (gl:delete-shader vertex-shader)
+    (gl:delete-shader fragment-shader)
+
+    (let ((status (gl:get-program program :link-status)))
+      (unless status
+        (error "Program linkage failure: ~a"
+               (gl:get-program-info-log program))))
+    program))
