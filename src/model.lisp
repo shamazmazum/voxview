@@ -18,14 +18,14 @@
 (declaim (inline boundaryp))
 (defun boundaryp (array i j k)
   (and (not (zerop (aref array i j k)))
-       (or (zerop (aref array i j (1- k)))
-           (zerop (aref array i j (1+ k)))
+       (or (zerop (safe-aref array i j (1- k)))
+           (zerop (safe-aref array i j (1+ k)))
 
-           (zerop (aref array i (1- j) k))
-           (zerop (aref array i (1+ j) k))
+           (zerop (safe-aref array i (1- j) k))
+           (zerop (safe-aref array i (1+ j) k))
 
-           (zerop (aref array (1+ i) j k))
-           (zerop (aref array (1- i) j k)))))
+           (zerop (safe-aref array (1+ i) j k))
+           (zerop (safe-aref array (1- i) j k)))))
 
 (sera:-> compute-boundary ((simple-array bit (* * *)))
          (values (model *) &optional))
