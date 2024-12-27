@@ -1,5 +1,21 @@
 (in-package :voxview)
 
+(defun show-error-dialog (condition)
+  (let ((dialog (gtk4:make-dialog)))
+    (gtk4:dialog-add-button dialog "Close" gtk4:+response-type-close+)
+    (let ((label (gtk4:make-label
+                  :str (with-output-to-string (out)
+                         (princ condition out)))))
+      (gtk4:box-append (gtk4:dialog-content-area dialog) label))
+    (gtk4:connect dialog "response"
+                  (lambda (widget id)
+                    (declare (ignore widget id))
+                    (gtk4:window-destroy dialog)))
+    (setf (gtk4:window-modal-p dialog) t
+          (gtk4:window-resizable-p dialog) nil
+          (gtk4:window-title dialog) "Error")
+    (gtk4:widget-show dialog)))
+
 (defun expand-horizontally (widget)
   (setf (gtk4:widget-hexpand-p widget) t
         (gtk4:widget-halign    widget) gtk4:+align-fill+))
@@ -146,10 +162,13 @@
                                         (when (= response gtk4:+response-type-accept+)
                                           (let ((file (gio:file-path
                                                        (gtk4:file-chooser-file dialog))))
-                                            (multiple-value-bind (model nvoxels)
-                                                (load-model file)
-                                              (funcall loader model nvoxels)))
-                                          (gtk4:gl-area-queue-render area))))
+                                            (handler-case
+                                                (multiple-value-bind (model nvoxels)
+                                                    (load-model file)
+                                                  (funcall loader model nvoxels)
+                                                  (gtk4:gl-area-queue-render area))
+                                              (unknown-format (c)
+                                                (show-error-dialog c)))))))
                         (gtk4:native-dialog-show dialog)))))
 
     (unless (gtk4:widget-visible-p window)
