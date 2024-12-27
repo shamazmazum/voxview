@@ -154,19 +154,16 @@
 (defun render-scene (gl-state scene)
   (gl:enable-vertex-attrib-array 0)
   (gl:bind-buffer :array-buffer (gl-state-posbuffer gl-state))
-  (gl:vertex-attrib-pointer 0 3 :float nil 0
-                            (cffi:null-pointer))
+  (gl:vertex-attrib-pointer 0 3 :float nil 0 0)
   (%gl:vertex-attrib-divisor 0 1)
 
   (gl:enable-vertex-attrib-array 1)
   (gl:bind-buffer :array-buffer (gl-state-vertbuffer gl-state))
-  (gl:vertex-attrib-pointer 1 3 :float nil 0
-                            (cffi:null-pointer))
+  (gl:vertex-attrib-pointer 1 3 :float nil 0 0)
 
   (gl:enable-vertex-attrib-array 2)
   (gl:bind-buffer :array-buffer (gl-state-normbuffer gl-state))
-  (gl:vertex-attrib-pointer 2 3 :float nil 0
-                            (cffi:null-pointer))
+  (gl:vertex-attrib-pointer 2 3 :float nil 0 0)
   (gl:draw-arrays-instanced :triangles 0
                             (array-dimension *cube-vertices* 0)
                             (scene-nvoxels scene))
