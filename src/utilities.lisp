@@ -83,7 +83,11 @@ dimensions of the GtkGLArea widget."
   (let ((noise (make-array (list side side side)
                            :element-type 'single-float)))
     (si:do-iterator (index (si:indices (array-dimensions noise)))
-      (let ((coords (mapcar (lambda (n) (/ (* scale n) side)) index)))
+      (let ((coords (mapcar
+                     (lambda (n)
+                       (declare (type fixnum n))
+                       (/ (* scale n) side))
+                     index)))
         (flet ((noise (x y z)
                  (cl-value-noise:value-noise x y z :seed seed :octaves 7)))
           (setf (apply #'aref noise index)
