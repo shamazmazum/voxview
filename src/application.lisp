@@ -41,7 +41,7 @@
                                     :application gtk4:*application*))
     (setf (gtk4:window-title window) "Voxview")
     (let* ((scene (make-scene))
-           (light-follows-camera-p nil)
+           (light-follows-camera-p t)
            (area-+-loader (multiple-value-call #'cons (make-drawing-area scene)))
            (area   (car area-+-loader))
            (loader (cdr area-+-loader))
@@ -125,6 +125,9 @@
         (%go camera-r scene-camera-r)
         (%go light-ϕ  scene-light-ϕ)
         (%go light-ψ  scene-light-ψ))
+
+      ;; Set "light follows camera" knob to a correct position
+      (setf (gtk4:check-button-active-p follow-camera) light-follows-camera-p)
 
       (gtk4:connect open-model "clicked"
                     (lambda (widget)
