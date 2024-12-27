@@ -1,0 +1,10 @@
+ql varjo
+ultralisp bohonghuang-cl-gtk4
+ql cl-opengl
+ql rtg-math
+ql alexandria
+ql serapeum
+ultralisp shamazmazum-numpy-npy
+ultralisp shamazmazum-cl-value-noise
+ultralisp shamazmazum-stateless-iterators
+ql array-operations
