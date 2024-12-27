@@ -68,7 +68,7 @@
    '((flet ((in-shadow-p ((vector :vec4))
               (let* ((normalized (/ (vari:swizzle vector :xyz)
                                     (vari:swizzle vector :w)))
-                     (text-coords (+ 0.5 (* 0.5 normalized)))
+                     (text-coords (/ (1+ normalized) 2))
                      (shadow-sample (vari:swizzle
                                      (vari:texture shadow-sampler
                                                    (vari:swizzle text-coords :xy))
