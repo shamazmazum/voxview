@@ -76,22 +76,30 @@ dimensions of the GtkGLArea widget."
     (rtg-math.vector3:make 0.0 0.0 0.0))))
 
 ;; Voxel texture
+(defmacro do-indices ((array &rest indices) &body body)
+  (let ((a (gensym)))
+    `(let ((,a ,array))
+       ,(first
+         (si:foldr
+          (lambda (enumerated-index acc)
+            (destructuring-bind (i . var)
+                enumerated-index
+              `((loop for ,var fixnum below (array-dimension ,a ,i) do ,@acc))))
+          body (si:enumerate (si:list->iterator indices)))))))
+
 (sera:-> create-noise (alex:positive-fixnum single-float fixnum)
          (values (simple-array single-float (* * *)) &optional))
 (defun create-noise (side scale seed)
   (declare (optimize (speed 3)))
   (let ((noise (make-array (list side side side)
                            :element-type 'single-float)))
-    (si:do-iterator (index (si:indices (array-dimensions noise)))
-      (let ((coords (mapcar
-                     (lambda (n)
-                       (declare (type fixnum n))
-                       (/ (* scale n) side))
-                     index)))
-        (flet ((noise (x y z)
-                 (cl-value-noise:value-noise x y z :seed seed :octaves 7)))
-          (setf (apply #'aref noise index)
-                (apply #'noise coords)))))
-    noise))
+    (flet ((trans (n)
+             (declare (type fixnum n))
+             (/ (* scale n) side)))
+    (do-indices (noise i j k)
+      (setf (aref noise i j k)
+            (cl-value-noise:value-noise (trans i) (trans j) (trans k)
+                                        :seed seed :octaves 7)))
+    noise)))
 
 (defparameter *noise*  (create-noise 128 20.0 43543))
