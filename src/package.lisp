@@ -3,5 +3,4 @@
   (:local-nicknames (#:alex #:alexandria)
                     (#:sera #:serapeum)
                     (#:si   #:stateless-iterators))
-  (:export #:voxview
-           #:*tmp-model*))
+  (:export #:voxview))
