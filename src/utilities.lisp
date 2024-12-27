@@ -10,6 +10,7 @@
   ;; Light
   (light-ϕ 0.0 :type single-float)
   (light-ψ 0.0 :type single-float)
+  (light-r 2.0 :type single-float)
 
   ;; Light color
   (light-color (rtg-math.vector3:make 1.0 1.0 1.0)
@@ -123,8 +124,7 @@ dimensions of the shadow map."
     0.1 3.0 75.0)
    (rtg-math.matrix4:look-at
     (rtg-math.vector3:make 0.0 1.0 0.0)
-    ;; FIXME: Must coincide with a number in MAKE-DRAW-HANDLER
-    (object-position 2.0
+    (object-position (scene-light-r scene)
                      (scene-light-ϕ scene)
                      (scene-light-ψ scene))
     (rtg-math.vector3:make 0.0 0.0 0.0))))

@@ -214,7 +214,10 @@
             (aref color 2)))
 
          ;; Light position
-         (let ((position (object-position 2.0 (scene-light-ϕ scene) (scene-light-ψ scene))))
+         (let ((position (object-position
+                          (scene-light-r scene)
+                          (scene-light-ϕ scene)
+                          (scene-light-ψ scene))))
            (gl:uniformf
             (gl:get-uniform-location (gl-state-pass-1 gl-state) "LIGHT_POSITION")
             (aref position 0)
