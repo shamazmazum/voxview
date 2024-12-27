@@ -6,6 +6,25 @@
 
 (deftype model-loader () '(sera:-> ((model *) rtg-math.types:vec3) (values &optional)))
 
+(sera:-> camera-projection-matrix (gir::object-instance scene)
+         (values rtg-math.types:mat4 &optional))
+(defun camera-projection-matrix (area scene)
+  (let* ((allocation (gtk4:widget-allocation area))
+         (width  (gir:field allocation 'width))
+         (height (gir:field allocation 'height)))
+    (projection-matrix (scene-camera-r scene)
+                       (scene-camera-ϕ scene)
+                       (scene-camera-ψ scene)
+                       width height)))
+
+(sera:-> light-projection-matrix (scene)
+         (values rtg-math.types:mat4 &optional))
+(defun light-projection-matrix (scene)
+  (projection-matrix (scene-light-r scene)
+                     (scene-light-ϕ scene)
+                     (scene-light-ψ scene)
+                     +shadow-width+ +shadow-height+))
+
 (sera:-> make-model-loader (gir::object-instance gl-state scene)
          (values model-loader &optional))
 (defun make-model-loader (area gl-state scene)
@@ -168,10 +187,10 @@
          (gl:use-program (gl-state-pass-0 gl-state))
 
          ;; Set light space projection matrix
-         (let ((world->light (world->light scene +shadow-width+ +shadow-height+)))
+         (let ((matrix (light-projection-matrix scene)))
            (gl:uniform-matrix
             (gl:get-uniform-location (gl-state-pass-0 gl-state) "TRANSFORM")
-            4 (vector world->light) nil))
+            4 (vector matrix) nil))
 
          ;; Render pass 0
          (render-scene gl-state scene)
@@ -189,21 +208,16 @@
          (gl:use-program (gl-state-pass-1 gl-state))
 
          ;; Camera projection
-         (let ((world->screen
-                (let* ((allocation (gtk4:widget-allocation area))
-                       (width  (gir:field allocation 'width))
-                       (height (gir:field allocation 'height)))
-                  (world->screen scene width height))))
+         (let ((matrix (camera-projection-matrix area scene)))
            (gl:uniform-matrix
             (gl:get-uniform-location (gl-state-pass-1 gl-state) "W_TRANSFORM")
-            4 (vector world->screen) nil))
+            4 (vector matrix) nil))
 
          ;; Light projection
-         ;; TODO: remove boilerplate
-         (let ((world->light (world->light scene +shadow-width+ +shadow-height+)))
+         (let ((matrix (light-projection-matrix scene)))
            (gl:uniform-matrix
             (gl:get-uniform-location (gl-state-pass-1 gl-state) "L_TRANSFORM")
-            4 (vector world->light) nil))
+            4 (vector matrix) nil))
 
          ;; Light color
          (let ((color (scene-light-color scene)))

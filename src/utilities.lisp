@@ -62,25 +62,6 @@
           (progn ,@body)
        (gl:free-gl-array ,var))))
 
-(sera:-> world->screen
-         (scene alex:positive-fixnum alex:positive-fixnum)
-         (values rtg-math.types:mat4 &optional))
-(defun world->screen (scene width height)
-  "Return world -> screen projection matrix. WIDTH and HEIGHT are
-dimensions of the GtkGLArea widget."
-  (rtg-math.matrix4:*
-   (rtg-math.projection:perspective
-    (float width)
-    (float height)
-    0.1 3.0
-    (scene-camera-fov scene))
-   (rtg-math.matrix4:look-at
-    (rtg-math.vector3:make 0.0 1.0 0.0)
-    (object-position (scene-camera-r scene)
-                     (scene-camera-ϕ scene)
-                     (scene-camera-ψ scene))
-    (rtg-math.vector3:make 0.0 0.0 0.0))))
-
 ;; Voxel texture
 (defmacro do-indices ((array &rest indices) &body body)
   (let ((a (gensym)))
@@ -110,13 +91,13 @@ dimensions of the GtkGLArea widget."
 
 (defparameter *noise*  (create-noise 128 20.0 43543))
 
-;; TODO: Refactor
-(sera:-> world->light
-         (scene alex:positive-fixnum alex:positive-fixnum)
+(sera:-> projection-matrix
+         (single-float single-float single-float alex:positive-fixnum alex:positive-fixnum)
          (values rtg-math.types:mat4 &optional))
-(defun world->light (scene width height)
-  "Return world -> light projection matrix. WIDTH and HEIGHT are
-dimensions of the shadow map."
+(defun projection-matrix (r ϕ ψ width height)
+  "Return a projection matrix from a perspective of an object with
+coordinates (R, Φ, Ψ) looking at the origin. WIDTH and HEIGHT are
+dimensions of the screen."
   (rtg-math.matrix4:*
    (rtg-math.projection:perspective
     (float width)
@@ -124,9 +105,7 @@ dimensions of the shadow map."
     0.1 3.0 75.0)
    (rtg-math.matrix4:look-at
     (rtg-math.vector3:make 0.0 1.0 0.0)
-    (object-position (scene-light-r scene)
-                     (scene-light-ϕ scene)
-                     (scene-light-ψ scene))
+    (object-position r ϕ ψ)
     (rtg-math.vector3:make 0.0 0.0 0.0))))
 
 (defun create-program (vertex fragment)
