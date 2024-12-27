@@ -167,7 +167,7 @@
                                                     (load-model file)
                                                   (funcall loader model nvoxels)
                                                   (gtk4:gl-area-queue-render area))
-                                              (unknown-format (c)
+                                              (loader-error (c)
                                                 (show-error-dialog c)))))))
                         (gtk4:native-dialog-show dialog)))))
 

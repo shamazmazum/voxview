@@ -9,7 +9,11 @@
   (description string)
   (loader      data-loader))
 
-(define-condition unknown-format (error)
+(define-condition loader-error (error)
+  ()
+  (:documentation "Generic loader error. Not to be instantiated."))
+
+(define-condition unknown-format (loader-error)
   ((pathname :initarg :pathname
              :type    pathname
              :reader  unknown-format-pathname))
@@ -17,12 +21,30 @@
              (format s "Cannot load ~a: unknown format"
                      (unknown-format-pathname c)))))
 
+(define-condition content-error (loader-error)
+  ((dimensions :initarg :dimensions
+               :type    list
+               :reader  content-error-dimensions)
+   (type       :initarg :type
+               :type    (or symbol list)
+               :reader  content-error-type))
+  (:report (lambda (c s)
+             (format
+              s #.(concatenate 'string
+                               "Wrong array with dimensions ~a and element type ~a."
+                               '(#\NewLine)
+                               "Must be three-dimensional array of bits")
+              (content-error-dimensions c)
+              (content-error-type       c)))))
+
 (declaim (ftype data-loader load-npy-model))
 (defun load-npy-model (pathname)
   (let ((model (numpy-npy:load-array pathname)))
     (unless (and (eq (array-element-type model) 'bit)
                  (=  (array-rank         model) 3))
-      (error 'unknown-format :pathname pathname))
+      (error 'content-error
+             :dimensions (array-dimensions model)
+             :type (array-element-type model)))
     model))
 
 (declaim (type list *loaders*))
