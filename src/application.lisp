@@ -22,6 +22,20 @@
     (gtk4:box-append box label)
     (gtk4:box-append toplevel box)))
 
+(defun add-filters-to-file-chooser-dialog (dialog)
+  (loop for loader in *loaders*
+        for filter = (gtk4:make-file-filter) do
+        (gtk4:file-filter-add-suffix filter (loader-type loader))
+        (setf (gtk4:file-filter-name filter) (loader-description loader))
+        (gtk4:file-chooser-add-filter dialog filter))
+  (when (> (length *loaders*) 1)
+    (loop with filter = (gtk4:make-file-filter)
+          for loader in *loaders* do
+          (gtk4:file-filter-add-suffix filter (loader-type loader)) finally
+          (setf (gtk4:file-filter-name filter) "All supported formats")
+          (gtk4:file-chooser-add-filter dialog filter)))
+  (values))
+
 (gtk4:define-application (:name voxview :id "org.fatimp.voxview")
   (gtk4:define-main-window (window (gtk4:make-application-window
                                     :application gtk4:*application*))
@@ -121,12 +135,8 @@
                                      :action gtk4:+file-chooser-action-open+
                                      :accept-label "Open"
                                      :cancel-label "Cancel")))
-                        ;; TODO: Rework filtering
-                        (let ((filter (gtk4:make-file-filter)))
-                          (gtk4:file-filter-add-suffix filter "npy")
-                          (setf (gtk4:file-filter-name filter) "Numpy arrays (.npy)")
-                          (gtk4:file-chooser-add-filter dialog filter))
 
+                        (add-filters-to-file-chooser-dialog dialog)
                         (gtk4:connect dialog "response"
                                       (lambda (widget response)
                                         (declare (ignore widget))
