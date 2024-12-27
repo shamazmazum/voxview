@@ -49,18 +49,20 @@
                       (* vertex (+ eps recip)))))
        (values
         (* w-transform (vari:vec4 coord 1)) ; gl_Position
-        (* l-transform (vari:vec4 coord 1))
-        normal)))))
+        (* l-transform (vari:vec4 coord 1)) ; Light projection
+        coord                               ; Vertex world coord
+        normal)))))                         ; Vertex normal
 
 (declaim (type varjo.internals:fragment-stage *fragment-pass-1*))
 (defparameter *fragment-pass-1*
   (varjo:make-stage
    :fragment
    '((light-proj :vec4)
+     (coord      :vec3)
      (normal     :vec3))
-   '((light-direction :vec3)
-     (light-color     :vec3)
-     (sampler         :sampler-2d))
+   '((light-position :vec3)
+     (light-color    :vec3)
+     (sampler        :sampler-2d))
    '(:450)
    '((flet ((in-shadow-p ((vector :vec4))
               (let* ((normalized (/ (vari:swizzle vector :xyz)
@@ -69,16 +71,15 @@
                      (sample (vari:swizzle
                               (vari:texture sampler (vari:swizzle text-coords :xy))
                               :r)))
-                (> (vari:swizzle text-coords :z) sample))))
-       #+nil
-       (let ((cosphi (vari:dot light-direction normal)))
+                (> (- (vari:swizzle text-coords :z) 0.005) sample))))
+       (let* ((r (- light-position coord))
+              (cosphi (/ (vari:dot r normal) (vari:length r))))
          (vari:vec4
           (* light-color
-             (+ 0.2 (* 0.8 (vari:clamp cosphi 0 1))))
-          1))
-       (if (in-shadow-p light-proj)
-           (vari:vec4 0.0 0.0 0.0 1.0)
-           (vari:vec4 0.5 0.5 0.5 1.0))))))
+             (+ 0.2
+                (if (in-shadow-p light-proj) 0.0
+                    (* 0.8 (vari:clamp cosphi 0 1)))))
+          1))))))
 
 (defparameter *pass-1*
   (varjo:rolling-translate

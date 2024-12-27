@@ -70,7 +70,7 @@ dimensions of the GtkGLArea widget."
    (rtg-math.projection:perspective
     (float width)
     (float height)
-    0.1 10.0
+    0.1 3.0
     (scene-camera-fov scene))
    (rtg-math.matrix4:look-at
     (rtg-math.vector3:make 0.0 1.0 0.0)
@@ -79,6 +79,7 @@ dimensions of the GtkGLArea widget."
                      (scene-camera-ψ scene))
     (rtg-math.vector3:make 0.0 0.0 0.0))))
 
+;; TODO: Refactor
 (sera:-> world->light
          (scene alex:positive-fixnum alex:positive-fixnum)
          (values rtg-math.types:mat4 &optional))
@@ -86,10 +87,10 @@ dimensions of the GtkGLArea widget."
   "Return world -> light projection matrix. WIDTH and HEIGHT are
 dimensions of the shadow map."
   (rtg-math.matrix4:*
-   (rtg-math.projection:orthographic
+   (rtg-math.projection:perspective
     (float width)
     (float height)
-    0.1 3.0)
+    0.1 3.0 75.0)
    (rtg-math.matrix4:look-at
     (rtg-math.vector3:make 0.0 1.0 0.0)
     ;; FIXME: Must coincide with a number in MAKE-DRAW-HANDLER
