@@ -6,16 +6,24 @@
 
 (deftype model-loader () '(sera:-> ((model *) rtg-math.types:vec3) (values &optional)))
 
-(sera:-> camera-projection-matrix (gir::object-instance scene)
-         (values rtg-math.types:mat4 &optional))
-(defun camera-projection-matrix (area scene)
+(sera:-> call-with-screen-size ((sera:-> (integer integer) t) gir::object-instance) t)
+(declaim (inline call-with-screen-size))
+(defun call-with-screen-size (f area)
   (let* ((allocation (gtk4:widget-allocation area))
          (width  (gir:field allocation 'width))
          (height (gir:field allocation 'height)))
-    (projection-matrix (scene-camera-r scene)
-                       (scene-camera-ϕ scene)
-                       (scene-camera-ψ scene)
-                       width height)))
+    (funcall f width height)))
+
+(sera:-> camera-projection-matrix (gir::object-instance scene)
+         (values rtg-math.types:mat4 &optional))
+(defun camera-projection-matrix (area scene)
+  (call-with-screen-size
+   (lambda (width height)
+     (projection-matrix (scene-camera-r scene)
+                        (scene-camera-ϕ scene)
+                        (scene-camera-ψ scene)
+                        width height))
+   area))
 
 (sera:-> light-projection-matrix (scene)
          (values rtg-math.types:mat4 &optional))
@@ -197,11 +205,10 @@
 
          ;; Pass 1: Render the scene from the viewer's perspective
          (gl:bind-framebuffer :framebuffer framebuffer)
-         ;; TODO: Remove boilerplate
-         (let* ((allocation (gtk4:widget-allocation area))
-                (width  (gir:field allocation 'width))
-                (height (gir:field allocation 'height)))
-           (gl:viewport 0 0 width height))
+         (call-with-screen-size
+          (lambda (width height)
+            (gl:viewport 0 0 width height))
+          area)
          (gl:clear :color-buffer-bit :depth-buffer-bit)
 
          ;; Set uniforms
