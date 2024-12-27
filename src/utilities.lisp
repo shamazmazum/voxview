@@ -19,7 +19,12 @@
   (nvoxels  0 :type fixnum))
 
 (defstruct gl-state
-  (program     -1 :type fixnum)
+  ;; Pass 0: A shadow map
+  (pass-0      -1 :type fixnum)
+  (framebuffer -1 :type fixnum)
+  (shadowmap   -1 :type fixnum)
+  ;; Pass 1: actual rendering
+  (pass-1      -1 :type fixnum)
   (vao         -1 :type fixnum)
   (posbuffer   -1 :type fixnum)
   (vertbuffer  -1 :type fixnum)
@@ -66,7 +71,7 @@ dimensions of the GtkGLArea widget."
    (rtg-math.projection:perspective
     (float width)
     (float height)
-    0.1 10.0
+    0.1 3.0
     (scene-camera-fov scene))
    (rtg-math.matrix4:look-at
     (rtg-math.vector3:make 0.0 1.0 0.0)
@@ -103,3 +108,45 @@ dimensions of the GtkGLArea widget."
     noise)))
 
 (defparameter *noise*  (create-noise 128 20.0 43543))
+
+;; TODO: Refactor
+(sera:-> world->light
+         (scene alex:positive-fixnum alex:positive-fixnum)
+         (values rtg-math.types:mat4 &optional))
+(defun world->light (scene width height)
+  "Return world -> light projection matrix. WIDTH and HEIGHT are
+dimensions of the shadow map."
+  (rtg-math.matrix4:*
+   (rtg-math.projection:perspective
+    (float width)
+    (float height)
+    0.1 3.0 75.0)
+   (rtg-math.matrix4:look-at
+    (rtg-math.vector3:make 0.0 1.0 0.0)
+    ;; FIXME: Must coincide with a number in MAKE-DRAW-HANDLER
+    (object-position 2.0
+                     (scene-light-ϕ scene)
+                     (scene-light-ψ scene))
+    (rtg-math.vector3:make 0.0 0.0 0.0))))
+
+(defun create-program (vertex fragment)
+  (let* ((program (gl:create-program))
+         (vertex-shader   (gl:create-shader :vertex-shader))
+         (fragment-shader (gl:create-shader :fragment-shader)))
+    (gl:shader-source vertex-shader   (varjo:glsl-code vertex))
+    (gl:shader-source fragment-shader (varjo:glsl-code fragment))
+    (gl:compile-shader vertex-shader)
+    (gl:compile-shader fragment-shader)
+    (gl:attach-shader program vertex-shader)
+    (gl:attach-shader program fragment-shader)
+    (gl:link-program program)
+    (gl:detach-shader  program vertex-shader)
+    (gl:detach-shader program fragment-shader)
+    (gl:delete-shader vertex-shader)
+    (gl:delete-shader fragment-shader)
+
+    (let ((status (gl:get-program program :link-status)))
+      (unless status
+        (error "Program linkage failure: ~a"
+               (gl:get-program-info-log program))))
+    program))
