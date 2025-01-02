@@ -164,7 +164,7 @@
                                                        (gtk4:file-chooser-file dialog))))
                                             (handler-case
                                                 (multiple-value-bind (model nvoxels)
-                                                    (load-model file)
+                                                    (load-connectivity file)
                                                   (funcall loader model nvoxels)
                                                   (gtk4:gl-area-queue-render area))
                                               (loader-error (c)

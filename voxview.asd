@@ -7,12 +7,12 @@
     :serial t
     :pathname "src"
     :components ((:file "package")
-                 (:file "voxel")
-                 (:file "shaders")
                  (:file "utilities")
-                 (:file "render")
                  (:file "loader")
                  (:file "model")
+                 (:file "voxel")
+                 (:file "shaders")
+                 (:file "render")
                  (:file "application"))
     :depends-on (:cl-gtk4
                  :varjo

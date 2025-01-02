@@ -10,44 +10,6 @@
            (<= 0 k (1- (array-dimension array 2))))
       (aref array i j k) 0))
 
-(sera:-> boundaryp ((simple-array bit (* * *))
-                    alex:non-negative-fixnum
-                    alex:non-negative-fixnum
-                    alex:non-negative-fixnum)
-         (values boolean &optional))
-(declaim (inline boundaryp))
-(defun boundaryp (array i j k)
-  (and (not (zerop (aref array i j k)))
-       (or (zerop (safe-aref array i j (1- k)))
-           (zerop (safe-aref array i j (1+ k)))
-
-           (zerop (safe-aref array i (1- j) k))
-           (zerop (safe-aref array i (1+ j) k))
-
-           (zerop (safe-aref array (1+ i) j k))
-           (zerop (safe-aref array (1- i) j k)))))
-
-(sera:-> compute-boundary ((simple-array bit (* * *)))
-         (values (model *) &optional))
-(defun compute-boundary (array)
-  (declare (optimize (speed 3)))
-  (let (list)
-    (do-indices (array i j k)
-      (when (boundaryp array i j k)
-        (push (list (float i) (float j) (float k)) list)))
-    (make-array (list (length list) 3)
-                :element-type 'single-float
-                :initial-contents list)))
-
-(sera:-> load-model ((or string pathname))
-         (values (model *) rtg-math.types:vec3 &optional))
-(defun load-model (filename)
-  (let ((data (load-data filename)))
-    (values
-     (compute-boundary data)
-     (apply #'rtg-math.vector3:make (mapcar #'float (array-dimensions data))))))
-
-
 (sera:-> connectivity ((simple-array bit (* * *))
                        alex:non-negative-fixnum
                        alex:non-negative-fixnum
@@ -63,14 +25,8 @@
               (if (zerop (safe-aref array i j (1- k))) (ash 1 4) 0)
               (if (zerop (safe-aref array i j (1+ k))) (ash 1 5) 0))))
 
-(sera:defconstructor connectivity-data
-  (coord rtg-math.types:uvec3)
-  (mask  (unsigned-byte 8)))
-
-(deftype connectivity-vector () `(simple-array connectivity-data (*)))
-
 (sera:-> compute-connectivity ((simple-array bit (* * *)))
-         (values connectivity-vector &optional))
+         (values list &optional))
 (defun compute-connectivity (array)
   (declare (optimize (speed 3)))
   (let (list)
@@ -81,12 +37,10 @@
                  (rtg-math.base-vectors:v!uint i j k)
                  connectivity)
                 list))))
-    (make-array (length list)
-                :element-type 'connectivity-data
-                :initial-contents list)))
+    list))
 
 (sera:-> load-connectivity ((or string pathname))
-         (values connectivity-vector rtg-math.types:uvec3 &optional))
+         (values list rtg-math.types:uvec3 &optional))
 (defun load-connectivity (filename)
   (let ((data (load-data filename)))
     (values

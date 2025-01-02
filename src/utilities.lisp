@@ -28,8 +28,7 @@
   (pass-1      -1 :type fixnum)
   (vao         -1 :type fixnum)
   (posbuffer   -1 :type fixnum)
-  (vertbuffer  -1 :type fixnum)
-  (normbuffer  -1 :type fixnum)
+  (connbuffer  -1 :type fixnum)
   (texture     -1 :type fixnum))
 
 (sera:-> object-position (single-float single-float single-float)
@@ -45,19 +44,37 @@
      (* r sin-ψ)
      (* r sin-ϕ cos-ψ))))
 
-(sera:-> array->gl ((model *))
-         (values gl:gl-array &optional))
-(defun array->gl (array)
-  "Convert one dimensional lisp array of floats to foreign array"
-  (declare (optimize (speed 3)))
-  (let ((gl-array (gl:alloc-gl-array :float (array-total-size array))))
-    (loop for i below (array-total-size array) do
-          (setf (gl:glaref gl-array i)
-                (row-major-aref array i)))
+(sera:defconstructor connectivity-data
+  (coord rtg-math.types:uvec3)
+  (mask  (unsigned-byte 8)))
+
+(defun fill-positions-buffer (list)
+  (declare (optimize (speed 3))
+           (type list list))
+  (let* ((length (length list))
+         (gl-array (gl:alloc-gl-array :uint32 (* length 3))))
+    (loop for n below (length list)
+          for i = (* n 3)
+          for connectivity in list
+          for coord = (connectivity-data-coord connectivity) do
+          (loop for j below 3 do
+                (setf (gl:glaref gl-array (+ i j))
+                      (aref coord j))))
     gl-array))
 
-(defmacro with-gl-array ((var lisp-array) &rest body)
-  `(let ((,var (array->gl ,lisp-array)))
+(defun fill-connectivity-buffer (list)
+  (declare (optimize (speed 3))
+           (type list list))
+  (let* ((length (length list))
+         (gl-array (gl:alloc-gl-array :uint8 length)))
+    (loop for i below (length list)
+          for connectivity in list
+          for mask = (connectivity-data-mask connectivity) do
+          (setf (gl:glaref gl-array i) mask))
+    gl-array))
+
+(defmacro with-gl-array ((var init-form) &rest body)
+  `(let ((,var ,init-form))
      (unwind-protect
           (progn ,@body)
        (gl:free-gl-array ,var))))
@@ -108,21 +125,27 @@ dimensions of the screen."
     (object-position r ϕ ψ)
     (rtg-math.vector3:make 0.0 0.0 0.0))))
 
-(defun create-program (vertex fragment)
+(defun create-shader (stage compiled-shader)
+  (let ((shader (gl:create-shader stage)))
+    (gl:shader-source shader (varjo:glsl-code compiled-shader))
+    (gl:compile-shader shader)
+    (let ((status (gl:get-shader shader :compile-status)))
+      (unless status
+        (error "Shader compile failure: ~a ~a"
+               shader
+               (gl:get-shader-info-log shader))))
+    shader))
+
+(defun create-program (stage)
   (let* ((program (gl:create-program))
-         (vertex-shader   (gl:create-shader :vertex-shader))
-         (fragment-shader (gl:create-shader :fragment-shader)))
-    (gl:shader-source vertex-shader   (varjo:glsl-code vertex))
-    (gl:shader-source fragment-shader (varjo:glsl-code fragment))
-    (gl:compile-shader vertex-shader)
-    (gl:compile-shader fragment-shader)
-    (gl:attach-shader program vertex-shader)
-    (gl:attach-shader program fragment-shader)
+         (vertex-shader   (create-shader :vertex-shader   (first  stage)))
+         (geometry-shader (create-shader :geometry-shader (second stage)))
+         (fragment-shader (create-shader :fragment-shader (third  stage))))
+    (mapc (lambda (shader) (gl:attach-shader program shader))
+          (list vertex-shader geometry-shader fragment-shader))
     (gl:link-program program)
-    (gl:detach-shader  program vertex-shader)
-    (gl:detach-shader program fragment-shader)
-    (gl:delete-shader vertex-shader)
-    (gl:delete-shader fragment-shader)
+    (mapc (lambda (shader) (gl:detach-shader program shader) (gl:delete-shader shader))
+          (list vertex-shader geometry-shader fragment-shader))
 
     (let ((status (gl:get-program program :link-status)))
       (unless status
