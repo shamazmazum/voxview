@@ -1,5 +1,19 @@
 (in-package :voxview)
 
+(defmacro with-place ((getter setter) &body body)
+  (let ((place (gensym))
+        (value (gensym "VAL")))
+    `(let (,place)
+       (flet ((,getter ()
+                (assert ,place)
+                ,place)
+              (,setter (,value)
+                (setq ,place ,value)))
+         ,@body))))
+
+(deftype getter () '(sera:-> () (values t &optional)))
+(deftype setter () '(sera:-> (t) (values t &optional)))
+
 (defstruct scene
   ;; Camera
   (camera-fov 75.0 :type single-float)
@@ -19,17 +33,18 @@
   ;; Scene parameters
   (nvoxels  0 :type fixnum))
 
-(defstruct gl-state
+(sera:defconstructor gl-state
+  ;; Common resources
+  (vao         fixnum)
+  (posbuffer   fixnum)
+  (connbuffer  fixnum)
   ;; Pass 0: A shadow map
-  (pass-0      -1 :type fixnum)
-  (framebuffer -1 :type fixnum)
-  (shadowmap   -1 :type fixnum)
+  (pass-0      fixnum)
+  (framebuffer fixnum)
+  (shadowmap   fixnum)
   ;; Pass 1: actual rendering
-  (pass-1      -1 :type fixnum)
-  (vao         -1 :type fixnum)
-  (posbuffer   -1 :type fixnum)
-  (connbuffer  -1 :type fixnum)
-  (texture     -1 :type fixnum))
+  (pass-1      fixnum)
+  (texture     fixnum))
 
 (sera:-> object-position (single-float single-float single-float)
          (values rtg-math.types:vec3 &optional))
