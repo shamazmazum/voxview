@@ -63,3 +63,13 @@
     (unless loader
       (error 'unknown-format :pathname pathname))
     (funcall (loader-loader loader) pathname)))
+
+(sera:-> data-files ((or string pathname))
+         (values list &optional))
+(defun data-files (directory)
+  "Return a list of data files in the directory"
+  (remove-if-not
+   (lambda (pathname)
+     (member (pathname-type pathname) *loaders* :key #'loader-type :test #'string=))
+   (cl-fad:list-directory
+    (uiop:ensure-directory-pathname directory))))

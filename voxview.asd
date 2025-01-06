@@ -10,6 +10,7 @@
                  (:file "utilities")
                  (:file "loader")
                  (:file "model")
+                 (:file "model-pointer")
                  (:file "voxel")
                  (:file "shaders")
                  (:file "render")
@@ -21,6 +22,7 @@
                  :alexandria
                  :serapeum
                  :numpy-npy
+                 :cl-fad
 
                  :cl-value-noise
                  :stateless-iterators
