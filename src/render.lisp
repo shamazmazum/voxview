@@ -67,64 +67,53 @@
 (defun make-realize-handler (gl-state)
   (lambda (area)
     (gtk4:gl-area-make-current area)
+    ;; Enable depth test
+    (gl:enable :depth-test :cull-face)
+    (gl:clear-color 0.0 0.0 0.0 0.0)
 
-    (with-accessors ((pass-0      gl-state-pass-0)
-                     (pass-1      gl-state-pass-1)
-                     (vao         gl-state-vao)
-                     (posbuffer   gl-state-posbuffer)
-                     (connbuffer  gl-state-connbuffer)
-                     (texture     gl-state-texture)
-                     (framebuffer gl-state-framebuffer)
-                     (shadowmap   gl-state-shadowmap))
-        gl-state
+    ;; Create programs
+    (setf (gl-state-pass-0 gl-state) (create-program *pass-0*)
+          (gl-state-pass-1 gl-state) (create-program *pass-1*))
 
-      ;; Enable depth test
-      (gl:enable :depth-test :cull-face)
-      (gl:clear-color 0.0 0.0 0.0 0.0)
+    ;; Create vertex array
+    (setf (gl-state-vao gl-state) (gl:gen-vertex-array))
+    (gl:bind-vertex-array (gl-state-vao gl-state))
 
-      ;; Create programs
-      (setf pass-0 (create-program *pass-0*))
-      (setf pass-1 (create-program *pass-1*))
+    ;; Create voxel position buffer
+    (setf (gl-state-posbuffer gl-state) (gl:gen-buffer))
 
-      ;; Create vertex array
-      (setf vao (gl:gen-vertex-array))
-      (gl:bind-vertex-array vao)
+    ;; Create voxel connectivity buffer
+    (setf (gl-state-connbuffer gl-state) (gl:gen-buffer))
 
-      ;; Create voxel position buffer
-      (setf posbuffer (gl:gen-buffer))
+    ;; Create texture
+    (setf (gl-state-texture gl-state) (gl:gen-texture))
+    (gl:bind-texture :texture-3d (gl-state-texture gl-state))
+    (gl:tex-image-3d :texture-3d 0 :red
+                     (array-dimension *noise* 0)
+                     (array-dimension *noise* 1)
+                     (array-dimension *noise* 2)
+                     0 :red :float (aops:flatten *noise*))
+    (gl:tex-parameter :texture-3d :texture-mag-filter :nearest)
+    (gl:tex-parameter :texture-3d :texture-min-filter :nearest)
+    (gl:tex-parameter :texture-3d :texture-wrap-s :mirrored-repeat)
+    (gl:tex-parameter :texture-3d :texture-wrap-t :mirrored-repeat)
+    (gl:tex-parameter :texture-3d :texture-wrap-r :mirrored-repeat)
 
-      ;; Create voxel connectivity buffer
-      (setf connbuffer (gl:gen-buffer))
-
-      ;; Create texture
-      (setf texture (gl:gen-texture))
-      (gl:bind-texture :texture-3d texture)
-      (gl:tex-image-3d :texture-3d 0 :red
-                       (array-dimension *noise* 0)
-                       (array-dimension *noise* 1)
-                       (array-dimension *noise* 2)
-                       0 :red :float (aops:flatten *noise*))
-      (gl:tex-parameter :texture-3d :texture-mag-filter :nearest)
-      (gl:tex-parameter :texture-3d :texture-min-filter :nearest)
-      (gl:tex-parameter :texture-3d :texture-wrap-s :mirrored-repeat)
-      (gl:tex-parameter :texture-3d :texture-wrap-t :mirrored-repeat)
-      (gl:tex-parameter :texture-3d :texture-wrap-r :mirrored-repeat)
-
-      ;; Prepare shadowmap
-      (setf framebuffer (gl:gen-framebuffer))
-      (setf shadowmap (gl:gen-texture))
-      (gl:bind-texture :texture-2d shadowmap)
-      (gl:tex-image-2d :texture-2d 0 :depth-component +shadow-width+ +shadow-height+ 0
-                       :depth-component :float (cffi:null-pointer))
-      (gl:tex-parameter :texture-2d :texture-min-filter :nearest)
-      (gl:tex-parameter :texture-2d :texture-mag-filter :nearest)
-      (gl:tex-parameter :texture-2d :texture-wrap-s :repeat)
-      (gl:tex-parameter :texture-2d :texture-wrap-t :repeat)
-      (gl:bind-framebuffer :framebuffer framebuffer)
-      (gl:framebuffer-texture-2d :framebuffer :depth-attachment :texture-2d shadowmap 0)
-      (gl:draw-buffer :none)
-      (gl:read-buffer :none)
-      (gl:bind-framebuffer :framebuffer 0))
+    ;; Prepare shadowmap
+    (setf (gl-state-framebuffer gl-state) (gl:gen-framebuffer))
+    (setf (gl-state-shadowmap gl-state) (gl:gen-texture))
+    (gl:bind-texture :texture-2d (gl-state-shadowmap gl-state))
+    (gl:tex-image-2d :texture-2d 0 :depth-component +shadow-width+ +shadow-height+ 0
+                     :depth-component :float (cffi:null-pointer))
+    (gl:tex-parameter :texture-2d :texture-min-filter :nearest)
+    (gl:tex-parameter :texture-2d :texture-mag-filter :nearest)
+    (gl:tex-parameter :texture-2d :texture-wrap-s :repeat)
+    (gl:tex-parameter :texture-2d :texture-wrap-t :repeat)
+    (gl:bind-framebuffer :framebuffer (gl-state-framebuffer gl-state))
+    (gl:framebuffer-texture-2d :framebuffer :depth-attachment :texture-2d (gl-state-shadowmap gl-state) 0)
+    (gl:draw-buffer :none)
+    (gl:read-buffer :none)
+    (gl:bind-framebuffer :framebuffer 0)
     (values)))
 
 (sera:-> make-unrealize-handler (gl-state)
