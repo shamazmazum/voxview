@@ -1,5 +1,21 @@
 (in-package :voxview)
 
+(sera:-> navigation-button-handler
+         (gir::object-instance model-gpu-uploader getter setter stepper)
+         (values (sera:-> (gir::object-instance) (values &optional)) &optional))
+(defun navigation-button-handler (area uploader model-getter model-setter stepper)
+  (lambda (widget)
+    (declare (ignore widget))
+    (let ((pointer (funcall stepper (funcall model-getter))))
+      (funcall model-setter pointer)
+      (handler-case
+          (multiple-value-bind (model nvoxels)
+              (load-connectivity (current-or-previous pointer))
+            (funcall uploader model nvoxels)
+            (gtk4:gl-area-queue-render area))
+        (loader-error (c)
+          (show-error-dialog c))))))
+
 (defun show-error-dialog (condition)
   (let ((dialog (gtk4:make-dialog)))
     (gtk4:dialog-add-button dialog "Close" gtk4:+response-type-close+)
@@ -58,9 +74,9 @@
     (setf (gtk4:window-title window) "Voxview")
     (let* ((scene (make-scene))
            (light-follows-camera-p t)
-           (area-+-loader (multiple-value-call #'cons (make-drawing-area scene)))
-           (area   (car area-+-loader))
-           (loader (cdr area-+-loader))
+           (area-+-uploader (multiple-value-call #'cons (make-drawing-area scene)))
+           (area     (car area-+-uploader))
+           (uploader (cdr area-+-uploader))
            (control-frame (gtk4:make-frame :label "Controls"))
            (camera-frame  (gtk4:make-frame :label "Camera"))
            (light-frame   (gtk4:make-frame :label "Light"))
@@ -93,8 +109,7 @@
            (follow-camera (gtk4:make-check-button :label "Follow camera"))
            (open-model (gtk4:make-button :label "Open model"))
            (next-model (gtk4:make-button :icon-name "go-next"))
-           (prev-model (gtk4:make-button :icon-name "go-previous"))
-           model-pointer)
+           (prev-model (gtk4:make-button :icon-name "go-previous")))
 
       (setf (gtk4:window-child window) toplevel-box
             (gtk4:frame-child control-frame) control-box
@@ -157,66 +172,50 @@
       ;; Set "light follows camera" knob to a correct position
       (setf (gtk4:check-button-active-p follow-camera) light-follows-camera-p)
 
-      (gtk4:connect
-       prev-model "clicked"
-       (lambda (widget)
-         (declare (ignore widget))
-         (setq model-pointer (step-backward model-pointer))
-         (handler-case
-             (multiple-value-bind (model nvoxels)
-                 (load-connectivity
-                  (current-or-previous model-pointer))
-               (funcall loader model nvoxels)
-               (gtk4:gl-area-queue-render area))
-           (loader-error (c)
-             (show-error-dialog c)))))
+      (with-place (model-pointer-getter model-pointer-setter)
+        (gtk4:connect
+         prev-model "clicked"
+         (navigation-button-handler area uploader
+                                    #'model-pointer-getter #'model-pointer-setter
+                                    #'step-backward))
+        (gtk4:connect
+         next-model "clicked"
+         (navigation-button-handler area uploader
+                                    #'model-pointer-getter #'model-pointer-setter
+                                    #'step-forward))
 
-      (gtk4:connect
-       next-model "clicked"
-       (lambda (widget)
-         (declare (ignore widget))
-         (setq model-pointer (step-forward model-pointer))
-         (handler-case
-             (multiple-value-bind (model nvoxels)
-                 (load-connectivity
-                  (current-or-previous model-pointer))
-               (funcall loader model nvoxels)
-               (gtk4:gl-area-queue-render area))
-           (loader-error (c)
-             (show-error-dialog c)))))
+        (gtk4:connect
+         open-model "clicked"
+         (lambda (widget)
+           (declare (ignore widget))
+           (let ((dialog (gtk4:make-file-chooser-native
+                          :title "Choose a model"
+                          :parent window
+                          :action gtk4:+file-chooser-action-open+
+                          :accept-label "Open"
+                          :cancel-label "Cancel")))
 
-      (gtk4:connect
-       open-model "clicked"
-       (lambda (widget)
-         (declare (ignore widget))
-         (let ((dialog (gtk4:make-file-chooser-native
-                        :title "Choose a model"
-                        :parent window
-                        :action gtk4:+file-chooser-action-open+
-                        :accept-label "Open"
-                        :cancel-label "Cancel")))
-
-           (add-filters-to-file-chooser-dialog dialog)
-           (gtk4:connect dialog "response"
-                         (lambda (widget response)
-                           (declare (ignore widget))
-                           (when (= response gtk4:+response-type-accept+)
-                             (let ((file (gio:file-path
-                                          (gtk4:file-chooser-file dialog))))
-                               (handler-case
-                                   (progn
-                                     (setq model-pointer (zipper-to-model file))
-                                     (multiple-value-bind (model nvoxels)
-                                         (load-connectivity
-                                          (current-or-previous model-pointer))
-                                       (funcall loader model nvoxels)
-                                       (setf
-                                        (gtk4:widget-sensitive-p next-model) t
-                                        (gtk4:widget-sensitive-p prev-model) t)
-                                       (gtk4:gl-area-queue-render area)))
-                                 (loader-error (c)
-                                   (show-error-dialog c)))))))
-           (gtk4:native-dialog-show dialog)))))
+             (add-filters-to-file-chooser-dialog dialog)
+             (gtk4:connect dialog "response"
+                           (lambda (widget response)
+                             (declare (ignore widget))
+                             (when (= response gtk4:+response-type-accept+)
+                               (let ((file (gio:file-path
+                                            (gtk4:file-chooser-file dialog))))
+                                 (handler-case
+                                     (let ((model-pointer (zipper-to-model file)))
+                                       (multiple-value-bind (model nvoxels)
+                                           (load-connectivity
+                                            (current-or-previous model-pointer))
+                                         (funcall uploader model nvoxels)
+                                         (model-pointer-setter model-pointer)
+                                         (setf
+                                          (gtk4:widget-sensitive-p next-model) t
+                                          (gtk4:widget-sensitive-p prev-model) t)
+                                         (gtk4:gl-area-queue-render area)))
+                                   (loader-error (c)
+                                     (show-error-dialog c)))))))
+             (gtk4:native-dialog-show dialog))))))
 
     (unless (gtk4:widget-visible-p window)
       (gtk4:window-present window))))

@@ -7,6 +7,8 @@
   (rest list)
   (seen list))
 
+(deftype stepper () '(sera:-> (list-zipper) (values list-zipper &optional)))
+
 (sera:-> zipper-to-head (list)
          (values list-zipper &optional))
 (defun zipper-to-head (list)

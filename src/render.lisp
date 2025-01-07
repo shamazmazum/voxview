@@ -31,9 +31,11 @@
                      (scene-light-ψ scene)
                      +shadow-width+ +shadow-height+))
 
-(sera:-> make-model-loader (gir::object-instance getter scene)
-         (values (sera:-> (list rtg-math.types:uvec3) (values &optional)) &optional))
-(defun make-model-loader (area state-getter scene)
+(deftype model-gpu-uploader () '(sera:-> (list rtg-math.types:uvec3) (values &optional)))
+
+(sera:-> make-gpu-uploader (gir::object-instance getter scene)
+         (values model-gpu-uploader &optional))
+(defun make-gpu-uploader (area state-getter scene)
   (lambda (model dimensions)
     (gtk4:gl-area-make-current area)
 
@@ -252,4 +254,4 @@
       (gtk4:connect area "realize"   (make-realize-handler   #'state-setter))
       (gtk4:connect area "unrealize" (make-unrealize-handler #'state-getter))
       (gtk4:connect area "render"    (make-draw-handler      #'state-getter scene))
-      (values area (make-model-loader area #'state-getter scene)))))
+      (values area (make-gpu-uploader area #'state-getter scene)))))
