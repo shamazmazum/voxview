@@ -6,14 +6,25 @@
   (+ (/ (* position 2) divisor) -1
      (/ (1+ vertex) divisor)))
 
-(varjo:define-vari-function in-shadow-p ((vector  :vec4)
-                                         (sampler :sampler-2d))
-  (let* ((normalized (/ (vari:swizzle vector :xyz)
-                        (vari:swizzle vector :w)))
-         (text-coords (/ (1+ normalized) 2))
-         (sample (vari:swizzle
-                  (vari:texture sampler (vari:swizzle text-coords :xy)) :r)))
-    (> (- (vari:swizzle text-coords :z) 0.005) sample)))
+(varjo:define-vari-function illumination ((vector :vec4) (sampler :sampler-2d))
+  (let* ((step (/ 1.0 (vari:texture-size sampler 0)))
+         (illumination 0.0)
+         (%normalized (/ (vari:swizzle vector :xyz)
+                         (vari:swizzle vector :w)))
+         (normalized (/ (1+ %normalized) 2))
+         (current-depth (vari:swizzle normalized :z))
+         (shadowmap-coords (vari:swizzle normalized :xy)))
+    (dotimes (i 5)
+      (dotimes (j 5)
+        (let ((sample (vari:swizzle
+                       (vari:texture
+                        sampler (+ shadowmap-coords
+                                   (* (vari:vec2 (- i 2)
+                                                 (- j 2))
+                                      step)))
+                       :r)))
+          (incf illumination (if (< (- current-depth 0.0005) sample) 1 0)))))
+    (/ illumination 25)))
 
 ;; Pass 0: Rendering shadows
 
@@ -127,10 +138,10 @@
             (texture-coord (/ (1+ coord) 2))
             (texture-color (vari:swizzle (vari:texture texture-sampler texture-coord) :r)))
        (vari:vec4
-        (+ (if (in-shadow-p light-proj shadow-sampler)
-               (vari:vec3 0)                                ; We are in shadow, add nothing
-               (* 0.3 light-color (vari:clamp cosphi 0 1))) ; Otherwise add diffuse light
-           (* 0.7 texture-color))                           ; Ambient light
+        (+ (* 0.3 light-color
+              (illumination light-proj shadow-sampler) ; Determine if we are illuminated
+              (vari:clamp cosphi 0 1))                 ; Add diffuse light
+           (* 0.7 texture-color))                      ; Ambient light
         1)))))
 
 (defparameter *pass-1*
