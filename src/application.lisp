@@ -1,20 +1,24 @@
 (in-package :voxview)
 
 (sera:-> navigation-button-handler
-         (gir::object-instance model-gpu-uploader getter setter stepper)
+         (model-gpu-uploader getter setter stepper)
          (values (sera:-> (gir::object-instance) (values &optional)) &optional))
-(defun navigation-button-handler (area uploader model-getter model-setter stepper)
+(defun navigation-button-handler (uploader model-getter model-setter stepper)
   (lambda (widget)
     (declare (ignore widget))
     (let ((pointer (funcall stepper (funcall model-getter))))
-      (funcall model-setter pointer)
       (handler-case
           (multiple-value-bind (model nvoxels)
               (load-connectivity (current-or-previous pointer))
             (funcall uploader model nvoxels)
-            (gtk4:gl-area-queue-render area))
+            (funcall model-setter pointer))
         (loader-error (c)
           (show-error-dialog c))))))
+
+(defun format-status-line (zipper)
+  (format nil "Model file: ~a"
+          (enough-namestring (current-or-previous zipper)
+                             (truename #p"~/"))))
 
 (defun show-error-dialog (condition)
   (let ((dialog (gtk4:make-dialog)))
@@ -32,8 +36,10 @@
           (gtk4:window-title dialog) "Error")
     (gtk4:widget-show dialog)))
 
-(defun expand-horizontally (widget)
+(defun expand-widget (widget)
   (setf (gtk4:widget-hexpand-p widget) t
+        (gtk4:widget-vexpand-p widget) t
+        (gtk4:widget-halign    widget) gtk4:+align-fill+
         (gtk4:widget-halign    widget) gtk4:+align-fill+))
 
 (defun scale (min max value step)
@@ -80,7 +86,9 @@
            (control-frame (gtk4:make-frame :label "Controls"))
            (camera-frame  (gtk4:make-frame :label "Camera"))
            (light-frame   (gtk4:make-frame :label "Light"))
-           (toplevel-box   (gtk4:make-box :orientation gtk4:+orientation-horizontal+
+           (toplevel-box   (gtk4:make-box :orientation gtk4:+orientation-vertical+
+                                          :spacing 2))
+           (big-box        (gtk4:make-box :orientation gtk4:+orientation-horizontal+
                                           :spacing 0))
            (control-box    (gtk4:make-box :orientation gtk4:+orientation-vertical+
                                           :spacing 10))
@@ -109,7 +117,8 @@
            (follow-camera (gtk4:make-check-button :label "Follow camera"))
            (open-model (gtk4:make-button :label "Open model"))
            (next-model (gtk4:make-button :icon-name "go-next"))
-           (prev-model (gtk4:make-button :icon-name "go-previous")))
+           (prev-model (gtk4:make-button :icon-name "go-previous"))
+           (status-label (gtk4:make-label :str "Welcome to Voxview")))
 
       (setf (gtk4:window-child window) toplevel-box
             (gtk4:frame-child control-frame) control-box
@@ -118,9 +127,11 @@
             (gtk4:widget-sensitive-p prev-model) nil
             (gtk4:widget-sensitive-p next-model) nil)
 
-      (expand-horizontally area)
-      (gtk4:box-append toplevel-box area)
-      (gtk4:box-append toplevel-box control-frame)
+      (expand-widget area)
+      (gtk4:box-append toplevel-box big-box)
+      (gtk4:box-append toplevel-box status-label)
+      (gtk4:box-append big-box area)
+      (gtk4:box-append big-box control-frame)
       (gtk4:box-append control-box camera-frame)
       (gtk4:box-append control-box light-frame)
       (gtk4:box-append control-box navigation-box)
@@ -175,14 +186,23 @@
       (with-place (model-pointer-getter model-pointer-setter)
         (gtk4:connect
          prev-model "clicked"
-         (navigation-button-handler area uploader
+         (navigation-button-handler uploader
                                     #'model-pointer-getter #'model-pointer-setter
                                     #'step-backward))
         (gtk4:connect
          next-model "clicked"
-         (navigation-button-handler area uploader
+         (navigation-button-handler uploader
                                     #'model-pointer-getter #'model-pointer-setter
                                     #'step-forward))
+
+        (dolist (button (list next-model prev-model))
+          (gtk4:connect
+           button "clicked"
+           (lambda (widget)
+             (declare (ignore widget))
+             (gtk4:gl-area-queue-render area)
+             (setf (gtk4:label-text status-label)
+                   (format-status-line (model-pointer-getter))))))
 
         (gtk4:connect
          open-model "clicked"
@@ -211,7 +231,9 @@
                                        (model-pointer-setter model-pointer)
                                        (setf
                                         (gtk4:widget-sensitive-p next-model) t
-                                        (gtk4:widget-sensitive-p prev-model) t)
+                                        (gtk4:widget-sensitive-p prev-model) t
+                                        (gtk4:label-text status-label)
+                                        (format-status-line model-pointer))
                                        (gtk4:gl-area-queue-render area))
                                    (loader-error (c)
                                      (show-error-dialog c)))))))
