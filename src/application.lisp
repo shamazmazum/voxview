@@ -200,19 +200,19 @@
                            (lambda (widget response)
                              (declare (ignore widget))
                              (when (= response gtk4:+response-type-accept+)
-                               (let ((file (gio:file-path
-                                            (gtk4:file-chooser-file dialog))))
+                               (let* ((file (gio:file-path
+                                             (gtk4:file-chooser-file dialog)))
+                                      (model-pointer (zipper-to-model file)))
                                  (handler-case
-                                     (let ((model-pointer (zipper-to-model file)))
-                                       (multiple-value-bind (model nvoxels)
-                                           (load-connectivity
-                                            (current-or-previous model-pointer))
-                                         (funcall uploader model nvoxels)
-                                         (model-pointer-setter model-pointer)
-                                         (setf
-                                          (gtk4:widget-sensitive-p next-model) t
-                                          (gtk4:widget-sensitive-p prev-model) t)
-                                         (gtk4:gl-area-queue-render area)))
+                                     (multiple-value-bind (model nvoxels)
+                                         (load-connectivity
+                                          (current-or-previous model-pointer))
+                                       (funcall uploader model nvoxels)
+                                       (model-pointer-setter model-pointer)
+                                       (setf
+                                        (gtk4:widget-sensitive-p next-model) t
+                                        (gtk4:widget-sensitive-p prev-model) t)
+                                       (gtk4:gl-area-queue-render area))
                                    (loader-error (c)
                                      (show-error-dialog c)))))))
              (gtk4:native-dialog-show dialog))))))
