@@ -62,16 +62,18 @@
            (area   (car area-+-loader))
            (loader (cdr area-+-loader))
            (control-frame (gtk4:make-frame :label "Controls"))
-           (camera-frame (gtk4:make-frame :label "Camera"))
-           (light-frame  (gtk4:make-frame :label "Light"))
-           (toplevel-box (gtk4:make-box :orientation gtk4:+orientation-horizontal+
-                                        :spacing 0))
-           (control-box  (gtk4:make-box :orientation gtk4:+orientation-vertical+
-                                        :spacing 10))
-           (camera-box   (gtk4:make-box :orientation gtk4:+orientation-vertical+
-                                        :spacing 5))
-           (light-box    (gtk4:make-box :orientation gtk4:+orientation-vertical+
-                                        :spacing 5))
+           (camera-frame  (gtk4:make-frame :label "Camera"))
+           (light-frame   (gtk4:make-frame :label "Light"))
+           (toplevel-box   (gtk4:make-box :orientation gtk4:+orientation-horizontal+
+                                          :spacing 0))
+           (control-box    (gtk4:make-box :orientation gtk4:+orientation-vertical+
+                                          :spacing 10))
+           (camera-box     (gtk4:make-box :orientation gtk4:+orientation-vertical+
+                                          :spacing 5))
+           (light-box      (gtk4:make-box :orientation gtk4:+orientation-vertical+
+                                          :spacing 5))
+           (navigation-box (gtk4:make-box :orientation gtk4:+orientation-horizontal+
+                                          :spacing 2))
 
            (camera-ϕ (scale 0d0 (* 2 pi)
                             (scene-camera-ϕ scene)
@@ -89,19 +91,23 @@
                            (scene-light-ψ scene)
                            1d-2))
            (follow-camera (gtk4:make-check-button :label "Follow camera"))
-           (open-model (gtk4:make-button :label "Open model")))
+           (open-model (gtk4:make-button :label "Open model"))
+           (next-model (gtk4:make-button :icon-name "go-next"))
+           (prev-model (gtk4:make-button :icon-name "go-previous")))
 
       (setf (gtk4:window-child window) toplevel-box
             (gtk4:frame-child control-frame) control-box
             (gtk4:frame-child camera-frame) camera-box
-            (gtk4:frame-child light-frame) light-box)
+            (gtk4:frame-child light-frame) light-box
+            (gtk4:widget-sensitive-p prev-model) nil
+            (gtk4:widget-sensitive-p next-model) nil)
 
       (expand-horizontally area)
       (gtk4:box-append toplevel-box area)
       (gtk4:box-append toplevel-box control-frame)
       (gtk4:box-append control-box camera-frame)
       (gtk4:box-append control-box light-frame)
-      (gtk4:box-append control-box open-model)
+      (gtk4:box-append control-box navigation-box)
 
       (append-with-label camera-box camera-ϕ "ϕ")
       (append-with-label camera-box camera-ψ "ψ")
@@ -110,6 +116,11 @@
       (append-with-label light-box light-ϕ "ϕ")
       (append-with-label light-box light-ψ "ψ")
       (gtk4:box-append   light-box follow-camera)
+
+      ;; Looks ugly
+      (gtk4:box-append navigation-box prev-model)
+      (gtk4:box-append navigation-box open-model)
+      (gtk4:box-append navigation-box next-model)
 
       ;; Connect follow camera signal
       (gtk4:connect follow-camera "toggled"
