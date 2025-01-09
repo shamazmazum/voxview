@@ -59,10 +59,6 @@
      (* r sin-ψ)
      (* r sin-ϕ cos-ψ))))
 
-(sera:defconstructor connectivity-data
-  (coord rtg-math.types:uvec3)
-  (mask  (unsigned-byte 8)))
-
 (defun fill-positions-buffer (list)
   (declare (optimize (speed 3))
            (type list list))
@@ -95,17 +91,6 @@
        (gl:free-gl-array ,var))))
 
 ;; Voxel texture
-(defmacro do-indices ((array &rest indices) &body body)
-  (let ((a (gensym)))
-    `(let ((,a ,array))
-       ,(first
-         (si:foldr
-          (lambda (enumerated-index acc)
-            (destructuring-bind (i . var)
-                enumerated-index
-              `((loop for ,var fixnum below (array-dimension ,a ,i) do ,@acc))))
-          body (si:enumerate (si:list->iterator indices)))))))
-
 (sera:-> create-noise (alex:positive-fixnum single-float fixnum)
          (values (simple-array single-float (* * *)) &optional))
 (defun create-noise (side scale seed)

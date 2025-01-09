@@ -1,4 +1,8 @@
-(in-package :voxview)
+(in-package :voxview/library)
+
+(sera:defconstructor connectivity-data
+  (coord rtg-math.types:uvec3)
+  (mask  (unsigned-byte 8)))
 
 (sera:-> safe-aref ((simple-array bit (* * *))
                     fixnum fixnum fixnum)
@@ -39,6 +43,7 @@
                 list))))
     list))
 
+#|
 (sera:-> load-connectivity ((or string pathname))
          (values list rtg-math.types:uvec3 &optional))
 (defun load-connectivity (filename)
@@ -46,3 +51,4 @@
     (values
      (compute-connectivity data)
      (apply #'rtg-math.base-vectors:v!uint (array-dimensions data)))))
+|#

@@ -64,6 +64,14 @@
       (error 'unknown-format :pathname pathname))
     (funcall (loader-loader loader) pathname)))
 
+(sera:-> load-connectivity ((or string pathname))
+         (values list rtg-math.types:uvec3 &optional))
+(defun load-connectivity (filename)
+  (let ((data (load-data filename)))
+    (values
+     (compute-connectivity data)
+     (apply #'rtg-math.base-vectors:v!uint (array-dimensions data)))))
+
 (sera:-> data-files ((or string pathname))
          (values list &optional))
 (defun data-files (directory)

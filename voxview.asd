@@ -1,3 +1,20 @@
+(defsystem :voxview/library
+    :name :voxview/library
+    :version "0.1"
+    :author "Vasily Postnicov <shamaz.mazum@gmail.com>"
+    :description "A tool to view voxel geometry (a library)"
+    :license "2-clause BSD"
+    :serial t
+    :pathname "library"
+    :components ((:file "package")
+                 (:file "do-indices")
+                 (:file "model")
+                 (:file "list-zipper"))
+    :depends-on (:alexandria
+                 :serapeum
+                 :rtg-math
+                 :stateless-iterators))
+
 (defsystem :voxview
     :name :voxview
     :version "0.1"
@@ -9,13 +26,13 @@
     :components ((:file "package")
                  (:file "utilities")
                  (:file "loader")
-                 (:file "model")
                  (:file "model-pointer")
                  (:file "voxel")
                  (:file "shaders")
                  (:file "render")
                  (:file "application"))
-    :depends-on (:cl-gtk4
+    :depends-on (:voxview/library
+                 :cl-gtk4
                  :varjo
                  :cl-opengl
                  :rtg-math
@@ -25,12 +42,10 @@
                  :cl-fad
 
                  :cl-value-noise
-                 :stateless-iterators
                  :array-operations)
     :build-operation program-op
     :build-pathname "voxview"
     :entry-point "voxview:voxview")
-
 
 
 #+sb-core-compression

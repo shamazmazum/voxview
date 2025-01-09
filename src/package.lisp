@@ -1,6 +1,5 @@
 (defpackage voxview
-  (:use #:cl)
+  (:use #:cl #:voxview/library)
   (:local-nicknames (#:alex #:alexandria)
-                    (#:sera #:serapeum)
-                    (#:si   #:stateless-iterators))
+                    (#:sera #:serapeum))
   (:export #:voxview))
