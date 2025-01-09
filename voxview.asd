@@ -26,7 +26,6 @@
     :components ((:file "package")
                  (:file "utilities")
                  (:file "loader")
-                 (:file "model-pointer")
                  (:file "voxel")
                  (:file "shaders")
                  (:file "render")

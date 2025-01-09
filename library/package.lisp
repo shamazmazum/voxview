@@ -9,4 +9,13 @@
            #:connectivity-data-coord
            #:connectivity-data-mask
            ;; Connectivity computation
-           #:compute-connectivity))
+           #:compute-connectivity
+           ;; List zippers
+           #:list-zipper
+           #:stepper
+           #:zipper-to-head
+           #:current
+           #:current-or-previous
+           #:step-forward
+           #:step-backward
+           #:goto-element))

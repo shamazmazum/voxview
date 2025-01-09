@@ -13,6 +13,14 @@
   ()
   (:documentation "Generic loader error. Not to be instantiated."))
 
+(define-condition file-not-found (loader-error)
+  ((pathname :initarg :pathname
+             :type    pathname
+             :reader  file-not-found-pathname))
+  (:report (lambda (c s)
+             (format s "Strange enough, but I cannot find file ~a in its directory"
+                     (file-not-found-pathname c)))))
+
 (define-condition unknown-format (loader-error)
   ((pathname :initarg :pathname
              :type    pathname
@@ -72,6 +80,7 @@
      (compute-connectivity data)
      (apply #'rtg-math.base-vectors:v!uint (array-dimensions data)))))
 
+;; List data files
 (sera:-> data-files ((or string pathname))
          (values list &optional))
 (defun data-files (directory)
@@ -81,3 +90,21 @@
      (member (pathname-type pathname) *loaders* :key #'loader-type :test #'string=))
    (cl-fad:list-directory
     (uiop:ensure-directory-pathname directory))))
+
+;; Zipper to a list of models
+(sera:-> zipper-to-model ((or string pathname))
+         (values list-zipper &optional))
+(defun zipper-to-model (filename)
+  "Return a zipper pointing to a file with a specific name in a list
+of all models in its directory. Signal FILE-NOT-FOUND is the directory
+cannot be listed for some reason."
+  (let* ((pathname (pathname filename))
+         (directory (make-pathname :device    (pathname-device    pathname)
+                                   :directory (pathname-directory pathname)))
+         (files (data-files directory))
+         (zipper (goto-element (zipper-to-head files)
+                               (truename pathname)
+                               :test #'equalp)))
+    (unless zipper
+      (error 'file-not-found :pathname pathname))
+    zipper))
