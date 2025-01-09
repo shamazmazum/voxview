@@ -4,7 +4,7 @@ ql cl-opengl
 ql rtg-math
 ql alexandria
 ql serapeum
-ultralisp shamazmazum-numpy-npy
 ultralisp shamazmazum-cl-value-noise
 ultralisp shamazmazum-stateless-iterators
 ql cl-fad
+github shamazmazum/numpy-npy :tag v0.2

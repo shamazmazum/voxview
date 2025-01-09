@@ -26,10 +26,6 @@
  (:class qlot/source/ql:source-ql
   :initargs (:%version :latest)
   :version "ql-2024-10-12"))
-("shamazmazum-numpy-npy" .
- (:class qlot/source/ultralisp:source-ultralisp
-  :initargs (:%version :latest)
-  :version "ultralisp-20241227095501"))
 ("shamazmazum-cl-value-noise" .
  (:class qlot/source/ultralisp:source-ultralisp
   :initargs (:%version :latest)
@@ -42,3 +38,7 @@
  (:class qlot/source/ql:source-ql
   :initargs (:%version :latest)
   :version "ql-2022-02-20"))
+("numpy-npy" .
+ (:class qlot/source/github:source-github
+  :initargs (:repos "shamazmazum/numpy-npy" :ref nil :branch nil :tag "v0.2")
+  :version "github-7482b7296a5b0d90531479729f97a773561e74e9"))
