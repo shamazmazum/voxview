@@ -7,5 +7,4 @@ ql serapeum
 ultralisp shamazmazum-numpy-npy
 ultralisp shamazmazum-cl-value-noise
 ultralisp shamazmazum-stateless-iterators
-ql array-operations
 ql cl-fad

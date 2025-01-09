@@ -152,3 +152,10 @@ dimensions of the screen."
         (error "Program linkage failure: ~a"
                (gl:get-program-info-log program))))
     program))
+
+(declaim (inline flatten))
+(defun flatten (array)
+  (make-array (array-total-size array)
+              :element-type (array-element-type array)
+              :displaced-to array
+              :displaced-index-offset 0))

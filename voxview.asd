@@ -39,9 +39,7 @@
                  :serapeum
                  :numpy-npy
                  :cl-fad
-
-                 :cl-value-noise
-                 :array-operations)
+                 :cl-value-noise)
     :build-operation program-op
     :build-pathname "voxview"
     :entry-point "voxview:voxview")

@@ -91,7 +91,7 @@
                        (array-dimension *noise* 0)
                        (array-dimension *noise* 1)
                        (array-dimension *noise* 2)
-                       0 :red :float (aops:flatten *noise*))
+                       0 :red :float (flatten *noise*))
       (gl:tex-parameter :texture-3d :texture-mag-filter :nearest)
       (gl:tex-parameter :texture-3d :texture-min-filter :nearest)
       (gl:tex-parameter :texture-3d :texture-wrap-s :mirrored-repeat)

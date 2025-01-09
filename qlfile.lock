@@ -38,10 +38,6 @@
  (:class qlot/source/ultralisp:source-ultralisp
   :initargs (:%version :latest)
   :version "ultralisp-20241227095501"))
-("array-operations" .
- (:class qlot/source/ql:source-ql
-  :initargs (:%version :latest)
-  :version "ql-2023-10-21"))
 ("cl-fad" .
  (:class qlot/source/ql:source-ql
   :initargs (:%version :latest)
