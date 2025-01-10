@@ -56,11 +56,7 @@
       ;; Set model dimensions
       (flet ((%go (program)
                (gl:use-program program)
-               (gl:uniformf
-                (gl:get-uniform-location program "NVOXELS")
-                (aref dimensions 0)
-                (aref dimensions 1)
-                (aref dimensions 2))))
+               (set-vec3-uniform program "NVOXELS" dimensions)))
         (%go (gl-state-pass-0 gl-state))
         (%go (gl-state-pass-1 gl-state))))
     (values)))
@@ -74,6 +70,9 @@
     ;; Create resources
     (let ((pass-0 (create-program *pass-0*)) ; Shadowmap program
           (pass-1 (create-program *pass-1*)) ; Rendering program
+          (ls-program
+           (create-program
+            *light-source-shaders*))         ; Light source rendering program
           (vao (gl:gen-vertex-array))        ; Vertex array object for a model
           (posbuffer  (gl:gen-buffer))       ; Voxel positions
           (connbuffer (gl:gen-buffer))       ; Connectivity information
@@ -82,7 +81,7 @@
           (shadowmap (gl:gen-texture)))      ; Shadowmap texture
 
       ;; Enable depth test
-      (gl:enable :depth-test :cull-face)
+      (gl:enable :depth-test)
       (gl:clear-color 0.0 0.0 0.0 0.0)
 
       ;; Upload model texture
@@ -115,7 +114,7 @@
       (funcall setter
                (gl-state vao posbuffer connbuffer
                          pass-0 framebuffer shadowmap
-                         pass-1 texture)))
+                         pass-1 texture ls-program)))
     (values)))
 
 (sera:-> make-unrealize-handler (getter)
@@ -131,7 +130,8 @@
                                (gl-state-posbuffer  gl-state)))
       (gl:delete-vertex-arrays (list (gl-state-vao gl-state)))
       (gl:delete-program (gl-state-pass-0 gl-state))
-      (gl:delete-program (gl-state-pass-1 gl-state)))
+      (gl:delete-program (gl-state-pass-1 gl-state))
+      (gl:delete-program (gl-state-ls-program gl-state)))
     (values)))
 
 (defun render-scene (gl-state scene)
@@ -161,10 +161,10 @@
     (cond
       ((zerop (scene-nvoxels scene)) nil)
       (t
-
        (let ((gl-state (funcall state-getter))
              ;; GTK reassigns the framebuffer almost each frame. This is really stupid
              (framebuffer (gl:get-integer :framebuffer-binding)))
+         (gl:enable :cull-face)
          ;; Pass 0: Render shadows
          (gl:bind-framebuffer :framebuffer (gl-state-framebuffer gl-state))
          (gl:viewport 0 0 +shadow-width+ +shadow-height+)
@@ -172,10 +172,8 @@
          (gl:use-program (gl-state-pass-0 gl-state))
 
          ;; Set light space projection matrix
-         (let ((matrix (light-projection-matrix scene)))
-           (gl:uniform-matrix
-            (gl:get-uniform-location (gl-state-pass-0 gl-state) "PROJECTION")
-            4 (vector matrix) nil))
+         (set-mat4-uniform (gl-state-pass-0 gl-state) "PROJECTION"
+                           (light-projection-matrix scene))
 
          ;; Render pass 0
          (render-scene gl-state scene)
@@ -192,35 +190,23 @@
          (gl:use-program (gl-state-pass-1 gl-state))
 
          ;; Camera projection
-         (let ((matrix (camera-projection-matrix area scene)))
-           (gl:uniform-matrix
-            (gl:get-uniform-location (gl-state-pass-1 gl-state) "C_PROJECTION")
-            4 (vector matrix) nil))
+         (set-mat4-uniform (gl-state-pass-1 gl-state) "C_PROJECTION"
+                           (camera-projection-matrix area scene))
 
          ;; Light projection
-         (let ((matrix (light-projection-matrix scene)))
-           (gl:uniform-matrix
-            (gl:get-uniform-location (gl-state-pass-1 gl-state) "L_PROJECTION")
-            4 (vector matrix) nil))
+         (set-mat4-uniform (gl-state-pass-1 gl-state) "L_PROJECTION"
+                           (light-projection-matrix scene))
 
          ;; Light color
-         (let ((color (scene-light-color scene)))
-           (gl:uniformf
-            (gl:get-uniform-location (gl-state-pass-1 gl-state) "LIGHT_COLOR")
-            (aref color 0)
-            (aref color 1)
-            (aref color 2)))
+         (set-vec3-uniform (gl-state-pass-1 gl-state) "LIGHT_COLOR"
+                           (scene-light-color scene))
 
          ;; Light position
-         (let ((position (object-position
-                          (scene-light-r scene)
-                          (scene-light-ϕ scene)
-                          (scene-light-ψ scene))))
-           (gl:uniformf
-            (gl:get-uniform-location (gl-state-pass-1 gl-state) "LIGHT_POSITION")
-            (aref position 0)
-            (aref position 1)
-            (aref position 2)))
+         (set-vec3-uniform (gl-state-pass-1 gl-state) "LIGHT_POSITION"
+                           (object-position
+                            (scene-light-r scene)
+                            (scene-light-ϕ scene)
+                            (scene-light-ψ scene)))
 
          ;; Texture sampler
          (gl:uniformi
@@ -237,7 +223,27 @@
          (gl:bind-texture :texture-2d (gl-state-shadowmap gl-state))
 
          ;; Render pass 1
-         (render-scene gl-state scene))
+         (render-scene gl-state scene)
+
+         ;; Render light source
+         (gl:disable :cull-face)
+
+         (gl:use-program (gl-state-ls-program gl-state))
+
+         ;; Set light position
+         (set-vec3-uniform (gl-state-ls-program gl-state) "LIGHT_POSITION"
+                           (object-position
+                            (scene-light-r scene)
+                            (scene-light-ϕ scene)
+                            (scene-light-ψ scene)))
+
+         ;; Set projection matrix
+         (set-mat4-uniform (gl-state-ls-program gl-state) "PROJECTION"
+                           (camera-projection-matrix area scene))
+
+         ;; Render a triangle
+         (gl:draw-arrays :triangles 0 3))
+
        ;; T indicates that we are done
        t))))
 

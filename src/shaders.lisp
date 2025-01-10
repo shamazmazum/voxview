@@ -149,3 +149,39 @@
    (list *vertex-pass-1*
          *geometry-pass-1*
          *fragment-pass-1*)))
+
+
+;; Light source shader
+(declaim (type varjo.internals:vertex-stage *vertex-light-source*))
+(defparameter *vertex-light-source*
+  (varjo:make-stage
+   :vertex
+   '() ; No inputs
+   '((light-position :vec3)
+     (projection     :mat4))
+   '(:430)
+   '((let* ((x (vari:swizzle light-position :x))
+            (y (vari:swizzle light-position :y))
+            (z (vari:swizzle light-position :z))
+            (v1 (vari:vec3 z 0 (- x)))
+            (v2 (vari:vec3 (- (* x y)) (+ (expt x 2) (expt z 2)) (- (* y z))))
+            (m (vari:mat3 (vari:normalize v1) (vari:normalize v2) (vari:vec3 0)))
+            (points (vector (vari:vec3 -1 -1 0) (vari:vec3 1 -1 0) (vari:vec3 0 1 0))))
+       (* projection
+          (vari:vec4
+           (+ light-position (* m 0.08 (aref points vari:gl-vertex-id)))
+           1))))))
+
+(declaim (type varjo.internals:fragment-stage *fragment-light-source*))
+(defparameter *fragment-light-source*
+  (varjo:make-stage
+   :fragment
+   '()
+   '()
+   '(:430)
+   '((vari:vec4 1 0 0 1))))
+
+(defparameter *light-source-shaders*
+  (varjo:rolling-translate
+   (list *vertex-light-source*
+         *fragment-light-source*)))

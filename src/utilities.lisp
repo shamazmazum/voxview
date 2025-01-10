@@ -44,7 +44,9 @@
   (shadowmap   fixnum)
   ;; Pass 1: actual rendering
   (pass-1      fixnum)
-  (texture     fixnum))
+  (texture     fixnum)
+  ;; Light source rendering
+  (ls-program  fixnum))
 
 (sera:-> object-position (single-float single-float single-float)
          (values rtg-math.types:vec3 &optional))
@@ -119,7 +121,7 @@ dimensions of the screen."
    (rtg-math.projection:perspective
     (float width)
     (float height)
-    0.1 3.0 75.0)
+    0.1 4.2 75.0)
    (rtg-math.matrix4:look-at
     (rtg-math.vector3:make 0.0 1.0 0.0)
     (object-position r ϕ ψ)
@@ -136,22 +138,34 @@ dimensions of the screen."
                (gl:get-shader-info-log shader))))
     shader))
 
-(defun create-program (stage)
+(defun create-program (shaders)
   (let* ((program (gl:create-program))
-         (vertex-shader   (create-shader :vertex-shader   (first  stage)))
-         (geometry-shader (create-shader :geometry-shader (second stage)))
-         (fragment-shader (create-shader :fragment-shader (third  stage))))
-    (mapc (lambda (shader) (gl:attach-shader program shader))
-          (list vertex-shader geometry-shader fragment-shader))
+         (what (if (= (length shaders) 2)
+                   '(:vertex-shader :fragment-shader)
+                   '(:vertex-shader :geometry-shader :fragment-shader)))
+         (gl-shaders (mapcar #'create-shader what shaders)))
+    (mapc (lambda (shader) (gl:attach-shader program shader)) gl-shaders)
     (gl:link-program program)
     (mapc (lambda (shader) (gl:detach-shader program shader) (gl:delete-shader shader))
-          (list vertex-shader geometry-shader fragment-shader))
+          gl-shaders)
 
     (let ((status (gl:get-program program :link-status)))
       (unless status
         (error "Program linkage failure: ~a"
                (gl:get-program-info-log program))))
     program))
+
+(defun set-mat4-uniform (program uniform matrix)
+  (gl:uniform-matrix
+   (gl:get-uniform-location program uniform)
+   4 (vector matrix) nil))
+
+(defun set-vec3-uniform (program uniform vector)
+  (gl:uniformf
+   (gl:get-uniform-location program uniform)
+   (aref vector 0)
+   (aref vector 1)
+   (aref vector 2)))
 
 (declaim (inline flatten))
 (defun flatten (array)
