@@ -17,18 +17,13 @@
 (defun camera-projection-matrix (area scene)
   (call-with-screen-size
    (lambda (width height)
-     (projection-matrix (scene-camera-r scene)
-                        (scene-camera-ϕ scene)
-                        (scene-camera-ψ scene)
-                        width height))
+     (projection-matrix (camera-position-vector scene) width height))
    area))
 
 (sera:-> light-projection-matrix (scene)
          (values rtg-math.types:mat4 &optional))
 (defun light-projection-matrix (scene)
-  (projection-matrix (scene-light-r scene)
-                     (scene-light-ϕ scene)
-                     (scene-light-ψ scene)
+  (projection-matrix (light-position-vector scene)
                      +shadow-width+ +shadow-height+))
 
 (deftype model-gpu-uploader () '(sera:-> (list rtg-math.types:uvec3) (values &optional)))
@@ -203,10 +198,7 @@
 
          ;; Light position
          (set-vec3-uniform (gl-state-pass-1 gl-state) "LIGHT_POSITION"
-                           (object-position
-                            (scene-light-r scene)
-                            (scene-light-ϕ scene)
-                            (scene-light-ψ scene)))
+                           (light-position-vector scene))
 
          ;; Texture sampler
          (gl:uniformi
@@ -232,10 +224,7 @@
 
          ;; Set light position
          (set-vec3-uniform (gl-state-ls-program gl-state) "LIGHT_POSITION"
-                           (object-position
-                            (scene-light-r scene)
-                            (scene-light-ϕ scene)
-                            (scene-light-ψ scene)))
+                           (light-position-vector scene))
 
          ;; Set projection matrix
          (set-mat4-uniform (gl-state-ls-program gl-state) "PROJECTION"

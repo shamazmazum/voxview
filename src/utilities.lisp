@@ -61,6 +61,20 @@
      (* r sin-ψ)
      (* r sin-ϕ cos-ψ))))
 
+(sera:-> light-position-vector (scene)
+         (values rtg-math.types:vec3 &optional))
+(defun light-position-vector (scene)
+  (object-position (scene-light-r scene)
+                   (scene-light-ϕ scene)
+                   (scene-light-ψ scene)))
+
+(sera:-> camera-position-vector (scene)
+         (values rtg-math.types:vec3 &optional))
+(defun camera-position-vector (scene)
+  (object-position (scene-camera-r scene)
+                   (scene-camera-ϕ scene)
+                   (scene-camera-ψ scene)))
+
 (defun fill-positions-buffer (list)
   (declare (optimize (speed 3))
            (type list list))
@@ -111,11 +125,11 @@
 (defparameter *noise*  (create-noise 128 20.0 43543))
 
 (sera:-> projection-matrix
-         (single-float single-float single-float alex:positive-fixnum alex:positive-fixnum)
+         (rtg-math.types:vec3  alex:positive-fixnum alex:positive-fixnum)
          (values rtg-math.types:mat4 &optional))
-(defun projection-matrix (r ϕ ψ width height)
+(defun projection-matrix (position width height)
   "Return a projection matrix from a perspective of an object with
-coordinates (R, Φ, Ψ) looking at the origin. WIDTH and HEIGHT are
+coordinates POSITION looking at the origin. WIDTH and HEIGHT are
 dimensions of the screen."
   (rtg-math.matrix4:*
    (rtg-math.projection:perspective
@@ -124,7 +138,7 @@ dimensions of the screen."
     0.1 6.2 75.0)
    (rtg-math.matrix4:look-at
     (rtg-math.vector3:make 0.0 1.0 0.0)
-    (object-position r ϕ ψ)
+    position
     (rtg-math.vector3:make 0.0 0.0 0.0))))
 
 (defun create-shader (stage compiled-shader)
