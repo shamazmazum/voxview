@@ -106,7 +106,7 @@
                             (- (+ (/ pi 2)) 0.01)
                             (scene-camera-ψ scene)
                             1d-2))
-           (camera-r (scale 5d-1 2d0 (scene-camera-r scene) 1d-1))
+           (camera-r (scale 5d-1 3d0 (scene-camera-r scene) 1d-1))
 
            (light-ϕ (scale 0d0 (* 2 pi)
                            (scene-light-ϕ scene) 1d-1))

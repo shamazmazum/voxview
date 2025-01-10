@@ -121,7 +121,7 @@ dimensions of the screen."
    (rtg-math.projection:perspective
     (float width)
     (float height)
-    0.1 4.2 75.0)
+    0.1 6.2 75.0)
    (rtg-math.matrix4:look-at
     (rtg-math.vector3:make 0.0 1.0 0.0)
     (object-position r ϕ ψ)
