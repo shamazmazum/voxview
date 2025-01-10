@@ -115,6 +115,7 @@
                            (scene-light-ψ scene)
                            1d-2))
            (follow-camera (gtk4:make-check-button :label "Follow camera"))
+           (show-light    (gtk4:make-check-button :label "Show light source"))
            (open-model (gtk4:make-button :label "Open model"))
            (next-model (gtk4:make-button :icon-name "go-next"))
            (prev-model (gtk4:make-button :icon-name "go-previous"))
@@ -142,7 +143,8 @@
 
       (append-with-label light-box light-ϕ "ϕ")
       (append-with-label light-box light-ψ "ψ")
-      (gtk4:box-append   light-box follow-camera)
+      (gtk4:box-append light-box follow-camera)
+      (gtk4:box-append light-box show-light)
 
       ;; Looks ugly
       (gtk4:box-append navigation-box prev-model)
@@ -163,6 +165,14 @@
                               (gtk4:range-value light-ψ)
                               (gtk4:range-value camera-ψ)))))
 
+      ;; Connect "show light source" signal
+      (gtk4:connect show-light "toggled"
+                    (lambda (widget)
+                      (declare (ignore widget))
+                      (setf (scene-show-light-p scene)
+                            (gtk4:check-button-active-p show-light))
+                      (gtk4:gl-area-queue-render area)))
+
       ;; Connect scale signals
       (macrolet ((%go (scale setter &optional aux-scale)
                    `(gtk4:connect ,scale "value-changed"
@@ -182,6 +192,8 @@
 
       ;; Set "light follows camera" knob to a correct position
       (setf (gtk4:check-button-active-p follow-camera) light-follows-camera-p)
+      ;; Same for "show light source"
+      (setf (gtk4:check-button-active-p show-light) (scene-show-light-p scene))
 
       (with-place (model-pointer-getter model-pointer-setter)
         (gtk4:connect

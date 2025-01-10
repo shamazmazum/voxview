@@ -217,21 +217,22 @@
          ;; Render pass 1
          (render-scene gl-state scene)
 
-         ;; Render light source
-         (gl:disable :cull-face)
+         (when (scene-show-light-p scene)
+           ;; Render light source
+           (gl:disable :cull-face)
 
-         (gl:use-program (gl-state-ls-program gl-state))
+           (gl:use-program (gl-state-ls-program gl-state))
 
-         ;; Set light position
-         (set-vec3-uniform (gl-state-ls-program gl-state) "LIGHT_POSITION"
-                           (light-position-vector scene))
+           ;; Set light position
+           (set-vec3-uniform (gl-state-ls-program gl-state) "LIGHT_POSITION"
+                             (light-position-vector scene))
 
-         ;; Set projection matrix
-         (set-mat4-uniform (gl-state-ls-program gl-state) "PROJECTION"
-                           (camera-projection-matrix area scene))
+           ;; Set projection matrix
+           (set-mat4-uniform (gl-state-ls-program gl-state) "PROJECTION"
+                             (camera-projection-matrix area scene))
 
-         ;; Render a triangle
-         (gl:draw-arrays :triangles 0 3))
+           ;; Render a triangle
+           (gl:draw-arrays :triangles 0 3)))
 
        ;; T indicates that we are done
        t))))
