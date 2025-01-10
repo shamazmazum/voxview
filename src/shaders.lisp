@@ -165,12 +165,13 @@
             (z (vari:swizzle light-position :z))
             (v1 (vari:vec3 z 0 (- x)))
             (v2 (vari:vec3 (- (* x y)) (+ (expt x 2) (expt z 2)) (- (* y z))))
-            (m (vari:mat3 (vari:normalize v1) (vari:normalize v2) (vari:vec3 0)))
-            (points (vector (vari:vec3 -1 -1 0) (vari:vec3 1 -1 0) (vari:vec3 0 1 0))))
+            (scale 0.08)
+            (m (vari:mat3 (* scale (vari:normalize v1))
+                          (* scale (vari:normalize v2))
+                          light-position))
+            (points (vector (vari:vec3 -1 -1 1) (vari:vec3 1 -1 1) (vari:vec3 0 1 1))))
        (* projection
-          (vari:vec4
-           (+ light-position (* m 0.08 (aref points vari:gl-vertex-id)))
-           1))))))
+          (vari:vec4 (* m (aref points vari:gl-vertex-id)) 1))))))
 
 (declaim (type varjo.internals:fragment-stage *fragment-light-source*))
 (defparameter *fragment-light-source*
