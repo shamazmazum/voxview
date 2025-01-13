@@ -264,48 +264,44 @@
       ;; TODO: A separate control for sensitivity?
       (let ((mouse-sensitivity 10.0)
             old-x old-y moving-camera-p moving-light-p)
-        (gtk4:connect
-         motion-controller "motion"
-         (lambda (widget x y)
-           (declare (ignore widget))
-           (when (or moving-camera-p moving-light-p)
-             (with-screen-size (width height) area
-               (let ((Δϕ (* mouse-sensitivity (/ (- x old-x) width)))
-                     (Δψ (* mouse-sensitivity (/ (- y old-y) height))))
-                 (when moving-camera-p
-                   (let ((ϕ (gtk4:range-value camera-ϕ)))
-                     (setf (gtk4:range-value camera-ϕ)
-                           (mod (+ ϕ Δϕ) (* 2 pi)))
-                     (incf (gtk4:range-value camera-ψ) Δψ)))
-                 (when (and moving-light-p (not light-follows-camera-p))
-                   (let ((ϕ (gtk4:range-value light-ϕ)))
-                     (setf (gtk4:range-value light-ϕ)
-                           (mod (+ ϕ Δϕ) (* 2 pi)))
-                     (incf (gtk4:range-value light-ψ) Δψ)))))
-             (setq old-x x old-y y))))
+        (flet ((set-state! (value)
+                 (let ((button (gtk4:gesture-single-current-button button-controller)))
+                   (cond
+                     ((= button 1)
+                      (setq moving-camera-p value))
+                     ((= button 3)
+                      (setq moving-light-p  value))))))
+          (gtk4:connect
+           motion-controller "motion"
+           (lambda (widget x y)
+             (declare (ignore widget))
+             (when (or moving-camera-p moving-light-p)
+               (with-screen-size (width height) area
+                 (let ((Δϕ (* mouse-sensitivity (/ (- x old-x) width)))
+                       (Δψ (* mouse-sensitivity (/ (- y old-y) height))))
+                   (flet ((modify-controls (control-ϕ control-ψ)
+                            (let ((ϕ (gtk4:range-value control-ϕ)))
+                              (setf (gtk4:range-value control-ϕ)
+                                    (mod (+ ϕ Δϕ) (* 2 pi)))
+                              (incf (gtk4:range-value control-ψ) Δψ))))
+                     (when moving-camera-p
+                       (modify-controls camera-ϕ camera-ψ))
+                     (when (and moving-light-p (not light-follows-camera-p))
+                       (modify-controls light-ϕ light-ψ)))))
+               (setq old-x x old-y y))))
 
-        (gtk4:connect
-         button-controller "pressed"
-         (lambda (widget nbuttons x y)
-           (declare (ignore widget nbuttons))
-           (setq old-x x old-y y)
-           (let ((button (gtk4:gesture-single-current-button button-controller)))
-             (cond
-               ((= button 1)
-                (setq moving-camera-p t))
-               ((= button 3)
-                (setq moving-light-p t))))))
+          (gtk4:connect
+           button-controller "pressed"
+           (lambda (widget nbuttons x y)
+             (declare (ignore widget nbuttons))
+             (setq old-x x old-y y)
+             (set-state! t)))
 
-        (gtk4:connect
-         button-controller "released"
-         (lambda (widget nbuttons x y)
-           (declare (ignore widget nbuttons x y))
-           (let ((button (gtk4:gesture-single-current-button button-controller)))
-             (cond
-               ((= button 1)
-                (setq moving-camera-p nil))
-               ((= button 3)
-                (setq moving-light-p nil))))))))
+          (gtk4:connect
+           button-controller "released"
+           (lambda (widget nbuttons x y)
+             (declare (ignore widget nbuttons x y))
+             (set-state! nil))))))
 
     (unless (gtk4:widget-visible-p window)
       (gtk4:window-present window))))
