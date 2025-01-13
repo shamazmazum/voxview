@@ -119,7 +119,10 @@
            (open-model (gtk4:make-button :label "Open model"))
            (next-model (gtk4:make-button :icon-name "go-next"))
            (prev-model (gtk4:make-button :icon-name "go-previous"))
-           (status-label (gtk4:make-label :str "Welcome to Voxview")))
+           (status-label (gtk4:make-label :str "Welcome to Voxview"))
+
+           (motion-controller (gtk4:make-event-controller-motion))
+           (button-controller (gtk4:make-gesture-click)))
 
       (setf (gtk4:window-child window) toplevel-box
             (gtk4:frame-child control-frame) control-box
@@ -150,6 +153,10 @@
       (gtk4:box-append navigation-box prev-model)
       (gtk4:box-append navigation-box open-model)
       (gtk4:box-append navigation-box next-model)
+
+      ;; Connect event controllers to the GL area
+      (gtk4:widget-add-controller area motion-controller)
+      (gtk4:widget-add-controller area button-controller)
 
       ;; Connect follow camera signal
       (gtk4:connect follow-camera "toggled"
@@ -249,7 +256,37 @@
                                        (gtk4:gl-area-queue-render area))
                                    (loader-error (c)
                                      (show-error-dialog c)))))))
-             (gtk4:native-dialog-show dialog))))))
+             (gtk4:native-dialog-show dialog)))))
+
+      ;; "Mouse look"
+      ;; TODO: A separate control for sensitivity?
+      (let ((mouse-sensitivity 10.0)
+            old-x old-y movingp)
+        (gtk4:connect
+         motion-controller "motion"
+         (lambda (widget x y)
+           (declare (ignore widget))
+           (when movingp
+             (with-screen-size (width height) area
+               (let ((Δϕ (* mouse-sensitivity (/ (- x old-x) width)))
+                     (Δψ (* mouse-sensitivity (/ (- y old-y) height)))
+                     (ϕ (gtk4:range-value camera-ϕ)))
+                 (setf (gtk4:range-value camera-ϕ)
+                       (mod (+ ϕ Δϕ) (* 2 pi)))
+                 (incf (gtk4:range-value camera-ψ) Δψ)))
+             (setq old-x x old-y y))))
+
+        (gtk4:connect
+         button-controller "pressed"
+         (lambda (widget nbuttons x y)
+           (declare (ignore widget nbuttons))
+           (setq movingp t old-x x old-y y)))
+
+        (gtk4:connect
+         button-controller "released"
+         (lambda (widget nbuttons x y)
+           (declare (ignore widget nbuttons x y))
+           (setq movingp nil)))))
 
     (unless (gtk4:widget-visible-p window)
       (gtk4:window-present window))))
