@@ -157,6 +157,8 @@
       ;; Connect event controllers to the GL area
       (gtk4:widget-add-controller area motion-controller)
       (gtk4:widget-add-controller area button-controller)
+      ;; Catch events from all buttons (there are no fucking touchpads here! ;)
+      (setf (gtk4:gesture-single-button button-controller) 0)
 
       ;; Connect follow camera signal
       (gtk4:connect follow-camera "toggled"
@@ -261,32 +263,49 @@
       ;; "Mouse look"
       ;; TODO: A separate control for sensitivity?
       (let ((mouse-sensitivity 10.0)
-            old-x old-y movingp)
+            old-x old-y moving-camera-p moving-light-p)
         (gtk4:connect
          motion-controller "motion"
          (lambda (widget x y)
            (declare (ignore widget))
-           (when movingp
+           (when (or moving-camera-p moving-light-p)
              (with-screen-size (width height) area
                (let ((Δϕ (* mouse-sensitivity (/ (- x old-x) width)))
-                     (Δψ (* mouse-sensitivity (/ (- y old-y) height)))
-                     (ϕ (gtk4:range-value camera-ϕ)))
-                 (setf (gtk4:range-value camera-ϕ)
-                       (mod (+ ϕ Δϕ) (* 2 pi)))
-                 (incf (gtk4:range-value camera-ψ) Δψ)))
+                     (Δψ (* mouse-sensitivity (/ (- y old-y) height))))
+                 (when moving-camera-p
+                   (let ((ϕ (gtk4:range-value camera-ϕ)))
+                     (setf (gtk4:range-value camera-ϕ)
+                           (mod (+ ϕ Δϕ) (* 2 pi)))
+                     (incf (gtk4:range-value camera-ψ) Δψ)))
+                 (when (and moving-light-p (not light-follows-camera-p))
+                   (let ((ϕ (gtk4:range-value light-ϕ)))
+                     (setf (gtk4:range-value light-ϕ)
+                           (mod (+ ϕ Δϕ) (* 2 pi)))
+                     (incf (gtk4:range-value light-ψ) Δψ)))))
              (setq old-x x old-y y))))
 
         (gtk4:connect
          button-controller "pressed"
          (lambda (widget nbuttons x y)
            (declare (ignore widget nbuttons))
-           (setq movingp t old-x x old-y y)))
+           (setq old-x x old-y y)
+           (let ((button (gtk4:gesture-single-current-button button-controller)))
+             (cond
+               ((= button 1)
+                (setq moving-camera-p t))
+               ((= button 3)
+                (setq moving-light-p t))))))
 
         (gtk4:connect
          button-controller "released"
          (lambda (widget nbuttons x y)
            (declare (ignore widget nbuttons x y))
-           (setq movingp nil)))))
+           (let ((button (gtk4:gesture-single-current-button button-controller)))
+             (cond
+               ((= button 1)
+                (setq moving-camera-p nil))
+               ((= button 3)
+                (setq moving-light-p nil))))))))
 
     (unless (gtk4:widget-visible-p window)
       (gtk4:window-present window))))
