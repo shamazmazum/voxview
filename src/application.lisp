@@ -301,7 +301,24 @@
            button-controller "released"
            (lambda (widget nbuttons x y)
              (declare (ignore widget nbuttons x y))
-             (set-state! nil))))))
+             (set-state! nil)))))
+
+      ;; Add hotkeys
+      (flet ((add-action (name button hotkey)
+               (let ((action (gio:make-simple-action
+                              :name name :parameter-type nil)))
+                 (gtk4:connect
+                  action "activate"
+                  (lambda (action param)
+                    (declare (ignore action param))
+                    (when (gtk4:widget-sensitive-p button)
+                      (gtk4:widget-activate button))))
+                 (gio:action-map-add-action window action))
+               (gir:invoke (gtk4:*application* "set_accels_for_action")
+                           (format nil "win.~a" name)
+                           (list hotkey))))
+        (add-action "next-model" next-model "<Control>l")
+        (add-action "prev-model" prev-model "<Control>h")))
 
     (unless (gtk4:widget-visible-p window)
       (gtk4:window-present window))))
