@@ -12,13 +12,17 @@
          (height (gir:field allocation 'height)))
     (funcall f width height)))
 
+(defmacro with-screen-size ((width height) area &body body)
+  `(call-with-screen-size
+    (lambda (,width ,height)
+      ,@body)
+    ,area))
+
 (sera:-> camera-projection-matrix (gir::object-instance scene)
          (values rtg-math.types:mat4 &optional))
 (defun camera-projection-matrix (area scene)
-  (call-with-screen-size
-   (lambda (width height)
-     (projection-matrix (camera-position-vector scene) width height))
-   area))
+  (with-screen-size (width height) area
+    (projection-matrix (camera-position-vector scene) width height)))
 
 (sera:-> light-projection-matrix (scene)
          (values rtg-math.types:mat4 &optional))
@@ -175,10 +179,8 @@
 
          ;; Pass 1: Render the scene from the viewer's perspective
          (gl:bind-framebuffer :framebuffer framebuffer)
-         (call-with-screen-size
-          (lambda (width height)
+         (with-screen-size (width height) area
             (gl:viewport 0 0 width height))
-          area)
          (gl:clear :color-buffer-bit :depth-buffer-bit)
 
          ;; Set uniforms
