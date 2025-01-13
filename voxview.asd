@@ -1,6 +1,6 @@
 (defsystem :voxview/library
     :name :voxview/library
-    :version "0.1"
+    :version "0.2"
     :author "Vasily Postnicov <shamaz.mazum@gmail.com>"
     :description "A tool to view voxel geometry (a library)"
     :license "2-clause BSD"
@@ -17,7 +17,7 @@
 
 (defsystem :voxview
     :name :voxview
-    :version "0.1"
+    :version "0.2"
     :author "Vasily Postnicov <shamaz.mazum@gmail.com>"
     :description "A tool to view voxel geometry"
     :license "2-clause BSD"
