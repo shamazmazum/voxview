@@ -78,6 +78,8 @@
   (gtk4:define-main-window (window (gtk4:make-application-window
                                     :application gtk4:*application*))
     (setf (gtk4:window-title window) "Voxview")
+    ;; KLUDGE: this setter is broken in cl-gtk4, so use gir directly
+    (gir:invoke (window "set_size_request") 1200 700)
     (let* ((scene (make-scene))
            (light-follows-camera-p t)
            (area-+-uploader (multiple-value-call #'cons (make-drawing-area scene)))
