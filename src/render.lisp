@@ -239,6 +239,18 @@
        ;; T indicates that we are done
        t))))
 
+;; KLUDGE: There are no GLArea.get_allowed_apis on Ubuntu
+(defun (setf maybe-gl-area-allowed-apis) (value area)
+  ;; First of all, find this method in the gir files
+  (let ((gl-area-methods
+         (gir:list-methods-desc
+          (gir:nget-desc (gir:require-namespace "Gtk" "4.0") "GLArea"))))
+    (when (find "set_allowed_apis" gl-area-methods
+                :test #'string=
+                :key (alex:compose #'gir:info-get-name #'gir::info-of))
+      (gir:invoke (area "set_allowed_apis") value)))
+  value)
+
 (sera:-> make-drawing-area (scene)
          (values gir::object-instance
                  (sera:-> (list rtg-math.types:uvec3)
@@ -246,8 +258,9 @@
                  &optional))
 (defun make-drawing-area (scene)
   (let ((area (gtk4:make-gl-area)))
-    (setf (gtk4:gl-area-allowed-apis area) 1         ; OpenGL Only
-          (gtk4:gl-area-has-depth-buffer-p area) t)  ; Enable depth buffer
+    (setf (gtk4:gl-area-has-depth-buffer-p area) t ; Enable depth buffer
+          ;; (gtk4:gl-area-allowed-apis area) 1
+          (maybe-gl-area-allowed-apis area) 1)     ; OpenGL Only
     (with-place (state-getter state-setter)
       (gtk4:connect area "realize"   (make-realize-handler   #'state-setter))
       (gtk4:connect area "unrealize" (make-unrealize-handler #'state-getter))
