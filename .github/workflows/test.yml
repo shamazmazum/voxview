@@ -1,9 +1,6 @@
-name: Build release
+name: CI tests
 
-on:
-  push:
-    tags:
-      - "v*.*.*"
+on: [push, pull_request]
 
 jobs:
   tests:
@@ -28,8 +25,4 @@ jobs:
         run: |
           cd $GITHUB_WORKSPACE
           qlot install
-          qlot exec ros -l ci/build.lisp
-      - name: Release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: src/voxview
+          qlot exec ros -l ci/test.lisp
