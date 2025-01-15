@@ -26,9 +26,11 @@ jobs:
           cd $GITHUB_WORKSPACE
           qlot install
           qlot exec ros -l ci/build.lisp
+      - name: Generate release message
+        run: echo "Version ${{ github.ref_name }}" > release-msg.txt
       - name: Release
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
-        #body: "Voxview ${{ github.ref_name }}. Changes are in Changelog.md"
+        body_path: release-msg.txt
         with:
           files: src/voxview
