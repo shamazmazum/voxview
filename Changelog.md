@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2 → 0.2.1
+
+* Enhancement: Add hotkeys C-h and C-l for going to the previous and to the next
+  model in current directory.
+* Bug fix: Set initial window size to 1200x700. Fixes appearance on non-tiling
+  WMs.
+* Bug fix: Set allowed APIs for GL area only if possible (Ubuntu does not have
+  this option).
+
 ## 0.1 → 0.2
 
 * Add navigation buttons which iterate through all models in the same directory.
