@@ -31,6 +31,6 @@ jobs:
       - name: Release
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
-        body: Voxview ${{ github.ref_name }}. Changes are in Changelog.md
+        body: "Voxview ${{ github.ref_name }}. Changes are in Changelog.md"
         with:
           files: src/voxview
