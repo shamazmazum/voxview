@@ -28,7 +28,7 @@ jobs:
         run: |
           cd $GITHUB_WORKSPACE
           qlot install
-          qlot exec ros -l ci/build.lisp
+          qlot exec ros dynamic-space-size=16gb -l ci/build.lisp
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
