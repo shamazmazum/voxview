@@ -41,7 +41,8 @@
               s #.(concatenate 'string
                                "Wrong array with dimensions ~a and element type ~a."
                                '(#\NewLine)
-                               "Must be three-dimensional array of bits")
+                               "Must be three-dimensional array of booleans "
+                               "(Numpy's dtype 'bool')")
               (content-error-dimensions c)
               (content-error-type       c)))))
 
