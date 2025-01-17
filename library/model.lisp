@@ -5,6 +5,8 @@
          (values bit &optional))
 (declaim (inline safe-aref))
 (defun safe-aref (array i j k)
+  #+sbcl
+  (declare (optimize (sb-c:insert-array-bounds-checks 0)))
   (if (and (<= 0 i (1- (array-dimension array 0)))
            (<= 0 j (1- (array-dimension array 1)))
            (<= 0 k (1- (array-dimension array 2))))
