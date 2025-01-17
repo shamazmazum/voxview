@@ -11,7 +11,6 @@
                  (:file "list-zipper"))
     :depends-on (:alexandria
                  :serapeum
-                 :rtg-math
                  :stateless-iterators)
     :in-order-to ((test-op (load-op "voxview/library/tests")))
     :perform (test-op (op system)

@@ -53,9 +53,8 @@
       ;; Set model dimensions
       (flet ((%go (program)
                (gl:use-program program)
-               (set-vec3-uniform
-                program "NVOXELS"
-                (connectivity-dimensions connectivity))))
+               (gl:uniformf (gl:get-uniform-location program "NVOXELS")
+                            (connectivity-max-dimension connectivity))))
         (%go (gl-state-pass-0 gl-state))
         (%go (gl-state-pass-1 gl-state))))
     (values)))

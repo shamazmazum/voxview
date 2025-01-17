@@ -28,9 +28,9 @@
               (if (zerop (safe-aref array i j (1+ k))) (ash 1 5) 0))))
 
 (sera:defconstructor connectivity
-  (points (simple-array (unsigned-byte 32) (*)))
-  (masks  (simple-array (unsigned-byte  8) (*)))
-  (dimensions rtg-math.types:uvec3))
+  (points        (simple-array (unsigned-byte 32) (*)))
+  (masks         (simple-array (unsigned-byte  8) (*)))
+  (max-dimension alex:positive-fixnum))
 
 (sera:-> compute-connectivity ((simple-array bit (* * *)))
          (values connectivity &optional))
@@ -47,4 +47,4 @@
     (connectivity
      (make-array (* n 3) :element-type '(unsigned-byte 32) :initial-contents ps)
      (make-array (* n 1) :element-type '(unsigned-byte 8)  :initial-contents cs)
-     (apply #'rtg-math.base-vectors:v!uint (array-dimensions array)))))
+     (apply #'max (array-dimensions array)))))

@@ -2,7 +2,7 @@
 
 (varjo:define-vari-function transform-coords ((position :vec3)
                                               (vertex   :vec3)
-                                              (divisor  :vec3))
+                                              (divisor  :float))
   (+ (/ (* position 2) divisor) -1
      (/ (1+ vertex) divisor)))
 
@@ -45,7 +45,7 @@
   (varjo:make-stage
    :geometry
    '((mask (:uint *)))   ; Connectivity mask (passed through the previous stage)
-   '((nvoxels    :vec3)  ; Dimensionality of the scene
+   '((nvoxels    :float) ; Maximal dimension of a scene
      (projection :mat4)) ; Projection matrix
    '(:430)
    '((declare (vari:output-primitive :kind :triangle-strip :max-vertices 26))
@@ -92,7 +92,7 @@
   (varjo:make-stage
    :geometry
    '((mask (:uint *)))
-   '((nvoxels      :vec3)  ; The same meaning as in the first pass
+   '((nvoxels      :float) ; The same meaning as in the first pass
      (c-projection :mat4)  ; Camera->screen projection
      (l-projection :mat4)) ; Light->shadow map projection
    '(:430)
