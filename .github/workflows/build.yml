@@ -24,12 +24,15 @@ jobs:
       - name: Set Path
         run: |
           echo "${HOME}/.roswell/bin" >> $GITHUB_PATH
-      - name: Run tests
+      - name: Build a standalone executable
         run: |
           cd $GITHUB_WORKSPACE
           qlot install
           qlot exec ros dynamic-space-size=16gb -l ci/build.lisp
+          mv src/voxview .
+          tar cvf voxview-ubuntu-x86-64-${{ github.ref_name }}.tar voxview
+          gzip voxview-ubuntu-x86-64-${{ github.ref_name }}.tar
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
-          files: src/voxview
+          files: voxview-ubuntu-x86-64-${{ github.ref_name }}.tar.gz
