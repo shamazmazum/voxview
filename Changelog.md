@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.1 → 0.2.2
+
+* Enhancement: Faster model loading
+* Bug fix: Place the camera and the light source further away from the origin.
+* Bug fix: Specify 16GB dynamic space size for release builds.
+
 ## 0.2 → 0.2.1
 
 * Enhancement: Add hotkeys C-h and C-l for going to the previous and to the next
