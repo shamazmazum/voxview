@@ -30,32 +30,32 @@
   (projection-matrix (light-position-vector scene)
                      +shadow-width+ +shadow-height+))
 
-(deftype model-gpu-uploader () '(sera:-> (list rtg-math.types:uvec3) (values &optional)))
+(deftype model-gpu-uploader () '(sera:-> (connectivity) (values &optional)))
 
 (sera:-> make-gpu-uploader (gir::object-instance getter scene)
          (values model-gpu-uploader &optional))
 (defun make-gpu-uploader (area state-getter scene)
-  (lambda (model dimensions)
+  (lambda (connectivity)
     (gtk4:gl-area-make-current area)
 
     (let ((gl-state (funcall state-getter)))
       ;; Fill voxel positions buffer
       (gl:bind-buffer :array-buffer (gl-state-posbuffer gl-state))
-      (with-gl-array (posarray (fill-positions-buffer model))
-        (gl:buffer-data :array-buffer :static-draw posarray))
+      (fast-upload-buffer (connectivity-points connectivity) 4)
 
       ;; Fill connectivity data
       (gl:bind-buffer :array-buffer (gl-state-connbuffer gl-state))
-      (with-gl-array (connarray (fill-connectivity-buffer model))
-        (gl:buffer-data :array-buffer :static-draw connarray))
+      (fast-upload-buffer (connectivity-masks connectivity) 1)
 
       ;; Set number of voxels
-      (setf (scene-nvoxels scene) (length model))
+      (setf (scene-nvoxels scene) (length (connectivity-masks connectivity)))
 
       ;; Set model dimensions
       (flet ((%go (program)
                (gl:use-program program)
-               (set-vec3-uniform program "NVOXELS" dimensions)))
+               (set-vec3-uniform
+                program "NVOXELS"
+                (connectivity-dimensions connectivity))))
         (%go (gl-state-pass-0 gl-state))
         (%go (gl-state-pass-1 gl-state))))
     (values)))

@@ -8,9 +8,8 @@
     (declare (ignore widget))
     (let ((pointer (funcall stepper (funcall model-getter))))
       (handler-case
-          (multiple-value-bind (model nvoxels)
-              (load-connectivity (current-or-previous pointer))
-            (funcall uploader model nvoxels)
+          (progn
+            (funcall uploader (load-connectivity (current-or-previous pointer)))
             (funcall model-setter pointer))
         (loader-error (c)
           (show-error-dialog c))))))
@@ -247,10 +246,10 @@
                                              (gtk4:file-chooser-file dialog)))
                                       (model-pointer (zipper-to-model file)))
                                  (handler-case
-                                     (multiple-value-bind (model nvoxels)
-                                         (load-connectivity
-                                          (current-or-previous model-pointer))
-                                       (funcall uploader model nvoxels)
+                                     (progn
+                                       (funcall uploader
+                                                (load-connectivity
+                                                 (current-or-previous model-pointer)))
                                        (model-pointer-setter model-pointer)
                                        (setf
                                         (gtk4:widget-sensitive-p next-model) t

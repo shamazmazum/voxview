@@ -5,9 +5,10 @@
                     (#:si   #:stateless-iterators))
   (:export #:do-indices
            ;; Connectivity data
-           #:connectivity-data
-           #:connectivity-data-coord
-           #:connectivity-data-mask
+           #:connectivity
+           #:connectivity-points
+           #:connectivity-masks
+           #:connectivity-dimensions
            ;; Connectivity computation
            #:compute-connectivity
            ;; List zippers

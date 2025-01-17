@@ -73,12 +73,9 @@
     (funcall (loader-loader loader) pathname)))
 
 (sera:-> load-connectivity ((or string pathname))
-         (values list rtg-math.types:uvec3 &optional))
+         (values connectivity &optional))
 (defun load-connectivity (filename)
-  (let ((data (load-data filename)))
-    (values
-     (compute-connectivity data)
-     (apply #'rtg-math.base-vectors:v!uint (array-dimensions data)))))
+  (compute-connectivity (load-data filename)))
 
 ;; List data files
 (sera:-> data-files ((or string pathname))

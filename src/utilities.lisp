@@ -77,36 +77,9 @@
                    (scene-camera-ϕ scene)
                    (scene-camera-ψ scene)))
 
-(defun fill-positions-buffer (list)
-  (declare (optimize (speed 3))
-           (type list list))
-  (let* ((length (length list))
-         (gl-array (gl:alloc-gl-array :uint32 (* length 3))))
-    (loop for n below (length list)
-          for i = (* n 3)
-          for connectivity in list
-          for coord = (connectivity-data-coord connectivity) do
-          (loop for j below 3 do
-                (setf (gl:glaref gl-array (+ i j))
-                      (aref coord j))))
-    gl-array))
-
-(defun fill-connectivity-buffer (list)
-  (declare (optimize (speed 3))
-           (type list list))
-  (let* ((length (length list))
-         (gl-array (gl:alloc-gl-array :uint8 length)))
-    (loop for i below (length list)
-          for connectivity in list
-          for mask = (connectivity-data-mask connectivity) do
-          (setf (gl:glaref gl-array i) mask))
-    gl-array))
-
-(defmacro with-gl-array ((var init-form) &rest body)
-  `(let ((,var ,init-form))
-     (unwind-protect
-          (progn ,@body)
-       (gl:free-gl-array ,var))))
+(defun fast-upload-buffer (vector element-size)
+  (cffi:with-pointer-to-vector-data (ptr vector)
+    (%gl:buffer-data :array-buffer (* element-size (length vector)) ptr :static-draw)))
 
 ;; Voxel texture
 (sera:-> create-noise (alex:positive-fixnum single-float fixnum)
