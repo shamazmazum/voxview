@@ -123,6 +123,8 @@
            (status-label (gtk4:make-label :str "Welcome to Voxview"))
 
            (motion-controller (gtk4:make-event-controller-motion))
+           (wheel-controller (gtk4:make-event-controller-scroll
+                              :flags gtk4:+event-controller-scroll-flags-vertical+))
            (button-controller (gtk4:make-gesture-click)))
 
       (setf (gtk4:window-child window) toplevel-box
@@ -158,6 +160,7 @@
       ;; Connect event controllers to the GL area
       (gtk4:widget-add-controller area motion-controller)
       (gtk4:widget-add-controller area button-controller)
+      (gtk4:widget-add-controller area wheel-controller)
       ;; Catch events from all buttons (there are no fucking touchpads here! ;)
       (setf (gtk4:gesture-single-button button-controller) 0)
 
@@ -303,6 +306,15 @@
            (lambda (widget nbuttons x y)
              (declare (ignore widget nbuttons x y))
              (set-state! nil)))))
+
+      ;; Zooming with a mouse wheel
+      (let ((wheel-sensitivity 1f-1))
+        (gtk4:connect
+         wheel-controller "scroll"
+         (lambda (widget x y)
+           (declare (ignore widget x))
+           (incf (gtk4:range-value camera-r)
+                 (* y wheel-sensitivity)))))
 
       ;; Add hotkeys
       (flet ((add-action (name button hotkey)
