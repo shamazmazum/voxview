@@ -142,7 +142,6 @@
      (normal     :vec3)
      (light-proj :vec4))
    '((light-position  :vec3)
-     (light-color     :vec3)
      (texture-sampler :sampler-3d)
      (shadow-sampler  :sampler-2d))
    '(:430)
@@ -151,10 +150,11 @@
             (texture-coord (/ (1+ coord) 2))
             (texture-color (vari:swizzle (vari:texture texture-sampler texture-coord) :r)))
        (vari:vec4
-        (+ (* 0.3 light-color
-              (illumination light-proj shadow-sampler) ; Determine if we are illuminated
-              (vari:clamp cosphi 0 1))                 ; Add diffuse light
-           (* 0.7 texture-color))                      ; Ambient light
+        (vari:vec3
+         (+ (* 0.3
+               (illumination light-proj shadow-sampler) ; Determine if we are illuminated
+               (vari:clamp cosphi 0 1))                 ; Add diffuse light
+            (* 0.7 texture-color)))                     ; Ambient light
         1)))))
 
 (defparameter *pass-1*

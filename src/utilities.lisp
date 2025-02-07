@@ -27,13 +27,10 @@
   (light-r 2.8 :type single-float)
 
   ;; Light settings
-  (light-color  (rtg-math.vector3:make 1.0 1.0 1.0)
-                :type rtg-math.types:vec3)
-  (show-light-p nil
-                :type boolean)
+  (show-light-p nil :type boolean)
 
   ;; Scene parameters
-  (nvoxels  0 :type fixnum))
+  (nvoxels 0 :type fixnum))
 
 (sera:defconstructor gl-state
   ;; Common resources

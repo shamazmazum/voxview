@@ -204,10 +204,6 @@
          (set-mat4-uniform (gl-state-pass-1 gl-state) "L_PROJECTION"
                            (light-projection-matrix scene))
 
-         ;; Light color
-         (set-vec3-uniform (gl-state-pass-1 gl-state) "LIGHT_COLOR"
-                           (scene-light-color scene))
-
          ;; Light position
          (set-vec3-uniform (gl-state-pass-1 gl-state) "LIGHT_POSITION"
                            (light-position-vector scene))
