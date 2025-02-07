@@ -9,6 +9,7 @@
            #:connectivity-points
            #:connectivity-masks
            #:connectivity-max-dimension
+           #:connectivity-labelz
            ;; Connectivity computation
            #:compute-connectivity
            ;; List zippers
