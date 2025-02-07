@@ -33,6 +33,7 @@
   (varjo:make-stage
    :vertex
    '((position :vec3)  ; Position of a voxel in the world system.
+     (label    :uint)  ; Label of a voxel. Not used in this stage
      (mask     :uint)) ; Connectivity mask. Used bits are 0 to 7
    '()
    '(:430)
@@ -84,14 +85,24 @@
 ;; Pass 1: Render the scene
 
 (declaim (type varjo.internals:vertex-stage *vertex-pass-1*))
-;; Vertex stage is shared with the first pass
-(defparameter *vertex-pass-1* *vertex-pass-0*)
+(defparameter *vertex-pass-1*
+  (varjo:make-stage
+   :vertex
+   '((position :vec3)  ; Position of a voxel in the world system.
+     (label    :uint)  ; Label of a voxel. Pass-through
+     (mask     :uint)) ; Connectivity mask. Used bits are 0 to 7. Pass-through
+   '()
+   '(:430)
+   ;; A simple pass-through shader
+   '((values (vari:vec4 position 1) label mask))
+   t :points))
 
 (declaim (type varjo.internals:geometry-stage *geometry-pass-1*))
 (defparameter *geometry-pass-1*
   (varjo:make-stage
    :geometry
-   '((mask (:uint *)))
+   '((label (:uint *))
+     (mask  (:uint *)))
    '((nvoxels      :float) ; The same meaning as in the first pass
      (c-projection :mat4)  ; Camera->screen projection
      (l-projection :mat4)) ; Light->shadow map projection
@@ -114,6 +125,7 @@
                      ;; of a vertex in the world space + normal vector.
                      (vari:emit-data
                       (values coord
+                              (:flat (aref label 0))
                               (aref normals plane)
                               ;; + Also projection of this vertex onto the shadow map.
                               (* l-projection (vari:vec4 coord 1)))))
@@ -126,6 +138,7 @@
   (varjo:make-stage
    :fragment
    '((coord      :vec3)
+     (label      :uint :flat)
      (normal     :vec3)
      (light-proj :vec4))
    '((light-position  :vec3)

@@ -43,6 +43,10 @@
       (gl:bind-buffer :array-buffer (gl-state-posbuffer gl-state))
       (fast-upload-buffer (connectivity-points connectivity) 4)
 
+      ;; Fill voxel label buffer
+      (gl:bind-buffer :array-buffer (gl-state-labelbuffer gl-state))
+      (fast-upload-buffer (connectivity-labelz connectivity) 4)
+
       ;; Fill connectivity data
       (gl:bind-buffer :array-buffer (gl-state-connbuffer gl-state))
       (fast-upload-buffer (connectivity-masks connectivity) 1)
@@ -72,8 +76,9 @@
            (create-program
             *light-source-shaders*))         ; Light source rendering program
           (vao (gl:gen-vertex-array))        ; Vertex array object for a model
-          (posbuffer  (gl:gen-buffer))       ; Voxel positions
-          (connbuffer (gl:gen-buffer))       ; Connectivity information
+          (posbuffer   (gl:gen-buffer))      ; Voxel positions
+          (labelbuffer (gl:gen-buffer))      ; Voxel label
+          (connbuffer  (gl:gen-buffer))      ; Connectivity information
           (texture (gl:gen-texture))         ; Model texture
           (framebuffer (gl:gen-framebuffer)) ; Shadow framebuffer
           (shadowmap (gl:gen-texture)))      ; Shadowmap texture
@@ -110,7 +115,7 @@
       (gl:bind-framebuffer :framebuffer 0)
 
       (funcall setter
-               (gl-state vao posbuffer connbuffer
+               (gl-state vao posbuffer labelbuffer connbuffer
                          pass-0 framebuffer shadowmap
                          pass-1 texture ls-program)))
     (values)))
@@ -124,8 +129,9 @@
       (gl:delete-textures (list (gl-state-texture gl-state)
                                 (gl-state-shadowmap gl-state)))
       (gl:delete-framebuffer (gl-state-framebuffer gl-state))
-      (gl:delete-buffers (list (gl-state-connbuffer gl-state)
-                               (gl-state-posbuffer  gl-state)))
+      (gl:delete-buffers (list (gl-state-connbuffer  gl-state)
+                               (gl-state-labelbuffer gl-state)
+                               (gl-state-posbuffer   gl-state)))
       (gl:delete-vertex-arrays (list (gl-state-vao gl-state)))
       (gl:delete-program (gl-state-pass-0 gl-state))
       (gl:delete-program (gl-state-pass-1 gl-state))
@@ -139,11 +145,16 @@
   (gl:vertex-attrib-pointer 0 3 :unsigned-int nil 0 0)
 
   (gl:enable-vertex-attrib-array 1)
+  (gl:bind-buffer :array-buffer (gl-state-labelbuffer gl-state))
+  (gl:vertex-attrib-ipointer 1 1 :unsigned-int 0 0)
+
+  (gl:enable-vertex-attrib-array 2)
   (gl:bind-buffer :array-buffer (gl-state-connbuffer gl-state))
-  (gl:vertex-attrib-ipointer 1 1 :unsigned-byte 0 0)
+  (gl:vertex-attrib-ipointer 2 1 :unsigned-byte 0 0)
 
   (gl:draw-arrays :points 0 (scene-nvoxels scene))
 
+  (gl:disable-vertex-attrib-array 2)
   (gl:disable-vertex-attrib-array 1)
   (gl:disable-vertex-attrib-array 0))
   

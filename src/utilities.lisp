@@ -39,6 +39,7 @@
   ;; Common resources
   (vao         fixnum)
   (posbuffer   fixnum)
+  (labelbuffer fixnum)
   (connbuffer  fixnum)
   ;; Pass 0: A shadow map
   (pass-0      fixnum)
