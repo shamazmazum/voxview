@@ -1,6 +1,6 @@
 (in-package :voxview/library)
 
-(sera:-> safe-aref ((simple-array bit (* * *))
+(sera:-> safe-aref ((simple-array (unsigned-byte 32) (* * *))
                     fixnum fixnum fixnum)
          (values bit &optional))
 (declaim (inline safe-aref))
@@ -10,7 +10,7 @@
   (if (array-in-bounds-p array i j k)
       (aref array i j k) 0))
 
-(sera:-> compute-mask ((simple-array bit (* * *))
+(sera:-> compute-mask ((simple-array (unsigned-byte 32) (* * *))
                        alex:non-negative-fixnum
                        alex:non-negative-fixnum
                        alex:non-negative-fixnum)
@@ -30,7 +30,7 @@
   (masks         (simple-array (unsigned-byte  8) (*)))
   (max-dimension alex:positive-fixnum))
 
-(sera:-> compute-connectivity ((simple-array bit (* * *)))
+(sera:-> compute-connectivity ((simple-array (unsigned-byte 32) (* * *)))
          (values connectivity &optional))
 (defun compute-connectivity (array)
   (declare (optimize (speed 3)))

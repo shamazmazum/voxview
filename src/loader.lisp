@@ -2,7 +2,7 @@
 
 (deftype data-loader ()
   '(sera:-> (pathname)
-    (values (simple-array bit (* * *)) &optional)))
+    (values (simple-array (unsigned-byte 32) (* * *)) &optional)))
 
 (sera:defconstructor loader
   (type        string)
@@ -41,20 +41,34 @@
               s #.(concatenate 'string
                                "Wrong array with dimensions ~a and element type ~a."
                                '(#\NewLine)
-                               "Must be three-dimensional array of booleans "
-                               "(Numpy's dtype 'bool')")
+                               "Must be three-dimensional array with dtype = 'bool' or dtype = 'uint32'")
               (content-error-dimensions c)
               (content-error-type       c)))))
 
+(declaim (inline recopy-from-bit-array))
+(sera:-> recopy-from-bit-array ((simple-array bit (* * *)))
+         (values (simple-array (unsigned-byte 32) (* * *)) &optional))
+(defun recopy-from-bit-array (array)
+  (let ((%array (make-array (array-dimensions array)
+                            :element-type '(unsigned-byte 32))))
+    (map-into (flatten %array) #'identity (flatten array))
+    %array))
+
 (declaim (ftype data-loader load-npy-model))
 (defun load-npy-model (pathname)
+  (declare (optimize (speed 3)))
   (let ((model (numpy-npy:load-array pathname)))
-    (unless (and (eq (array-element-type model) 'bit)
+    (unless (and (or (equalp (array-element-type model) 'bit)
+                     (equalp (array-element-type model) '(unsigned-byte 32)))
                  (=  (array-rank         model) 3))
       (error 'content-error
              :dimensions (array-dimensions model)
              :type (array-element-type model)))
-    model))
+    (if (eq (array-element-type model) 'bit)
+        ;; Convert to (UNSIGNED-BYTE 32) since COMPUTE-CONNECTIVITY
+        ;; works only with arrays of that element type.
+        (recopy-from-bit-array model)
+        model)))
 
 (declaim (type list *loaders*))
 (defparameter *loaders*
@@ -63,7 +77,7 @@
 
 
 (sera:-> load-data ((or string pathname))
-         (values (simple-array bit (* * *)) &optional))
+         (values (simple-array (unsigned-byte 32) (* * *)) &optional))
 (defun load-data (filename)
   (let* ((pathname (pathname filename))
          (type     (pathname-type pathname))
