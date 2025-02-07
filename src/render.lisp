@@ -78,7 +78,9 @@
           (vao (gl:gen-vertex-array))        ; Vertex array object for a model
           (posbuffer   (gl:gen-buffer))      ; Voxel positions
           (labelbuffer (gl:gen-buffer))      ; Voxel label
+          (palbuffer   (gl:gen-buffer))      ; Palette colors
           (connbuffer  (gl:gen-buffer))      ; Connectivity information
+          (palette (gl:gen-texture))         ; Palette texture
           (texture (gl:gen-texture))         ; Model texture
           (framebuffer (gl:gen-framebuffer)) ; Shadow framebuffer
           (shadowmap (gl:gen-texture)))      ; Shadowmap texture
@@ -100,6 +102,12 @@
       (gl:tex-parameter :texture-3d :texture-wrap-t :mirrored-repeat)
       (gl:tex-parameter :texture-3d :texture-wrap-r :mirrored-repeat)
 
+      ;; Upload palette
+      (gl:bind-buffer :texture-buffer palbuffer)
+      (fast-upload-buffer *label-colors* 4 :target :texture-buffer)
+      (gl:bind-texture :texture-buffer palette)
+      (%gl:tex-buffer :texture-buffer :rgb32f palbuffer)
+
       ;; Prepare shadowmap
       (gl:bind-texture :texture-2d shadowmap)
       (gl:tex-image-2d :texture-2d 0 :depth-component +shadow-width+ +shadow-height+ 0
@@ -115,9 +123,9 @@
       (gl:bind-framebuffer :framebuffer 0)
 
       (funcall setter
-               (gl-state vao posbuffer labelbuffer connbuffer
+               (gl-state vao posbuffer labelbuffer connbuffer palbuffer
                          pass-0 framebuffer shadowmap
-                         pass-1 texture ls-program)))
+                         pass-1 texture palette ls-program)))
     (values)))
 
 (sera:-> make-unrealize-handler (getter)
@@ -127,11 +135,13 @@
     (gtk4:gl-area-make-current area)
     (let ((gl-state (funcall state-getter)))
       (gl:delete-textures (list (gl-state-texture gl-state)
+                                (gl-state-palette gl-state)
                                 (gl-state-shadowmap gl-state)))
       (gl:delete-framebuffer (gl-state-framebuffer gl-state))
       (gl:delete-buffers (list (gl-state-connbuffer  gl-state)
                                (gl-state-labelbuffer gl-state)
-                               (gl-state-posbuffer   gl-state)))
+                               (gl-state-posbuffer   gl-state)
+                               (gl-state-palbuffer   gl-state)))
       (gl:delete-vertex-arrays (list (gl-state-vao gl-state)))
       (gl:delete-program (gl-state-pass-0 gl-state))
       (gl:delete-program (gl-state-pass-1 gl-state))
@@ -216,11 +226,16 @@
          (gl:uniformi
           (gl:get-uniform-location (gl-state-pass-1 gl-state) "SHADOW_SAMPLER") 1)
 
+         (gl:uniformi
+          (gl:get-uniform-location (gl-state-pass-1 gl-state) "PALETTE_SAMPLER") 2)
+
          ;; Activate textures
          (gl:active-texture :texture0)
          (gl:bind-texture :texture-3d (gl-state-texture gl-state))
          (gl:active-texture :texture1)
          (gl:bind-texture :texture-2d (gl-state-shadowmap gl-state))
+         (gl:active-texture :texture2)
+         (gl:bind-texture :texture-buffer (gl-state-palette gl-state))
 
          ;; Render pass 1
          (render-scene gl-state scene)

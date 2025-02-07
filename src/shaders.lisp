@@ -143,18 +143,25 @@
      (light-proj :vec4))
    '((light-position  :vec3)
      (texture-sampler :sampler-3d)
-     (shadow-sampler  :sampler-2d))
+     (shadow-sampler  :sampler-2d)
+     (palette-sampler :sampler-buffer))
    '(:430)
-   '((let* ((r (- light-position coord))
+   `((let* ((r (- light-position coord))
             (cosphi (/ (vari:dot r normal) (vari:length r)))
             (texture-coord (/ (1+ coord) 2))
-            (texture-color (vari:swizzle (vari:texture texture-sampler texture-coord) :r)))
+            (texture-color (vari:swizzle (vari:texture texture-sampler texture-coord) :r))
+            (palette-color (vari:swizzle
+                            (vari:texel-fetch
+                             palette-sampler
+                             (glsl-symbols.operators:% (vari:int label)
+                                                       ,+palette-color-number+))
+                            :rgb)))
        (vari:vec4
-        (vari:vec3
-         (+ (* 0.3
-               (illumination light-proj shadow-sampler) ; Determine if we are illuminated
-               (vari:clamp cosphi 0 1))                 ; Add diffuse light
-            (* 0.7 texture-color)))                     ; Ambient light
+        (* palette-color
+           (+ (* 0.3
+                 (illumination light-proj shadow-sampler) ; Determine if we are illuminated
+                 (vari:clamp cosphi 0 1))                 ; Add diffuse light
+              (* 0.7 texture-color)))                     ; Ambient light
         1)))))
 
 (defparameter *pass-1*

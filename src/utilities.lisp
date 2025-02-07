@@ -38,6 +38,7 @@
   (posbuffer   fixnum)
   (labelbuffer fixnum)
   (connbuffer  fixnum)
+  (palbuffer   fixnum)
   ;; Pass 0: A shadow map
   (pass-0      fixnum)
   (framebuffer fixnum)
@@ -45,6 +46,7 @@
   ;; Pass 1: actual rendering
   (pass-1      fixnum)
   (texture     fixnum)
+  (palette     fixnum)
   ;; Light source rendering
   (ls-program  fixnum))
 
@@ -75,9 +77,9 @@
                    (scene-camera-ϕ scene)
                    (scene-camera-ψ scene)))
 
-(defun fast-upload-buffer (vector element-size)
+(defun fast-upload-buffer (vector element-size &key (target :array-buffer))
   (cffi:with-pointer-to-vector-data (ptr vector)
-    (%gl:buffer-data :array-buffer (* element-size (length vector)) ptr :static-draw)))
+    (%gl:buffer-data target (* element-size (length vector)) ptr :static-draw)))
 
 ;; Voxel texture
 (sera:-> create-noise (alex:positive-fixnum single-float fixnum)
@@ -160,3 +162,14 @@ dimensions of the screen."
               :element-type (array-element-type array)
               :displaced-to array
               :displaced-index-offset 0))
+
+(defconstant +palette-color-number+ 64
+  "NUmber of colors in the palette")
+
+(defparameter *label-colors*
+  (make-array (* +palette-color-number+ 4)
+              :element-type 'single-float
+              :initial-contents
+              (list* 1.0 1.0 1.0 1.0
+                     (loop repeat (* (1- +palette-color-number+) 4) collect (random 1.0))))
+  "Random colors for different labels")
