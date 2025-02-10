@@ -345,8 +345,8 @@
                (gir:invoke (gtk4:*application* "set_accels_for_action")
                            (format nil "win.~a" name)
                            (list hotkey))))
-        (add-action "next-model" next-model "<Control>l")
-        (add-action "prev-model" prev-model "<Control>h")))
+        (add-action "next-model" next-model "<Alt>d")
+        (add-action "prev-model" prev-model "<Alt>a")))
 
     (unless (gtk4:widget-visible-p window)
       (gtk4:window-present window))))
