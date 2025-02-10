@@ -31,7 +31,6 @@
                      +shadow-width+ +shadow-height+))
 
 (deftype model-gpu-uploader () '(sera:-> (connectivity) (values &optional)))
-
 (sera:-> make-gpu-uploader (gir::object-instance getter scene)
          (values model-gpu-uploader &optional))
 (defun make-gpu-uploader (area state-getter scene)
@@ -62,6 +61,19 @@
         (%go (gl-state-pass-0 gl-state))
         (%go (gl-state-pass-1 gl-state))))
     (values)))
+
+(defun upload-new-palette (palbuffer)
+  (gl:bind-buffer :texture-buffer palbuffer)
+  (fast-upload-buffer (make-palette) 4 :target :texture-buffer))
+
+(deftype palette-uploader () '(sera:-> () (values &optional)))
+(sera:-> make-palette-uploader (gir::object-instance getter)
+         (values palette-uploader &optional))
+(defun make-palette-uploader (area state-getter)
+  (lambda ()
+    (gtk4:gl-area-make-current area)
+    (let ((gl-state (funcall state-getter)))
+      (upload-new-palette (gl-state-palbuffer gl-state)))))
 
 (sera:-> make-realize-handler (setter)
          (values (sera:-> (gir::object-instance) (values &optional)) &optional))
@@ -103,8 +115,7 @@
       (gl:tex-parameter :texture-3d :texture-wrap-r :mirrored-repeat)
 
       ;; Upload palette
-      (gl:bind-buffer :texture-buffer palbuffer)
-      (fast-upload-buffer *label-colors* 4 :target :texture-buffer)
+      (upload-new-palette palbuffer)
       (gl:bind-texture :texture-buffer palette)
       (%gl:tex-buffer :texture-buffer :rgb32f palbuffer)
 
@@ -176,7 +187,6 @@
 (defun make-draw-handler (state-getter scene)
   (lambda (area context)
     (declare (ignore context))
-
     (cond
       ((zerop (scene-nvoxels scene)) nil)
       (t
@@ -272,11 +282,13 @@
       (gir:invoke (area "set_allowed_apis") value)))
   value)
 
+(sera:defconstructor renderer
+  (area             gir::object-instance)
+  (model-uploader   model-gpu-uploader)
+  (palette-uploader palette-uploader))
+
 (sera:-> make-drawing-area (scene)
-         (values gir::object-instance
-                 (sera:-> (list rtg-math.types:uvec3)
-                          (values &optional))
-                 &optional))
+         (values renderer &optional))
 (defun make-drawing-area (scene)
   (let ((area (gtk4:make-gl-area)))
     (setf (gtk4:gl-area-has-depth-buffer-p area) t ; Enable depth buffer
@@ -286,4 +298,6 @@
       (gtk4:connect area "realize"   (make-realize-handler   #'state-setter))
       (gtk4:connect area "unrealize" (make-unrealize-handler #'state-getter))
       (gtk4:connect area "render"    (make-draw-handler      #'state-getter scene))
-      (values area (make-gpu-uploader area #'state-getter scene)))))
+      (renderer area
+                (make-gpu-uploader area #'state-getter scene)
+                (make-palette-uploader area #'state-getter)))))

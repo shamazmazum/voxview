@@ -81,9 +81,7 @@
     (gir:invoke (window "set_size_request") 1200 700)
     (let* ((scene (make-scene))
            (light-follows-camera-p t)
-           (area-+-uploader (multiple-value-call #'cons (make-drawing-area scene)))
-           (area     (car area-+-uploader))
-           (uploader (cdr area-+-uploader))
+           (renderer (make-drawing-area scene))
            (control-frame (gtk4:make-frame :label "Controls"))
            (camera-frame  (gtk4:make-frame :label "Camera"))
            (light-frame   (gtk4:make-frame :label "Light"))
@@ -99,6 +97,8 @@
                                           :spacing 5))
            (navigation-box (gtk4:make-box :orientation gtk4:+orientation-horizontal+
                                           :spacing 2))
+           (buttons-box    (gtk4:make-box :orientation gtk4:+orientation-vertical+
+                                          :spacing 0))
 
            (camera-ϕ (scale 0d0 (* 2 pi)
                             (scene-camera-ϕ scene)
@@ -120,6 +120,7 @@
            (open-model (gtk4:make-button :label "Open model"))
            (next-model (gtk4:make-button :icon-name "go-next"))
            (prev-model (gtk4:make-button :icon-name "go-previous"))
+           (palette    (gtk4:make-button :label "Randomize palette"))
            (status-label (gtk4:make-label :str "Welcome to Voxview"))
 
            (motion-controller (gtk4:make-event-controller-motion))
@@ -134,14 +135,17 @@
             (gtk4:widget-sensitive-p prev-model) nil
             (gtk4:widget-sensitive-p next-model) nil)
 
-      (expand-widget area)
+      (expand-widget (renderer-area renderer))
       (gtk4:box-append toplevel-box big-box)
       (gtk4:box-append toplevel-box status-label)
-      (gtk4:box-append big-box area)
+      (gtk4:box-append big-box (renderer-area renderer))
       (gtk4:box-append big-box control-frame)
       (gtk4:box-append control-box camera-frame)
       (gtk4:box-append control-box light-frame)
-      (gtk4:box-append control-box navigation-box)
+      (gtk4:box-append control-box buttons-box)
+      (gtk4:box-append buttons-box open-model)
+      (gtk4:box-append buttons-box palette)
+      (gtk4:box-append buttons-box navigation-box)
 
       (append-with-label camera-box camera-ϕ "ϕ")
       (append-with-label camera-box camera-ψ "ψ")
@@ -154,37 +158,46 @@
 
       ;; Looks ugly
       (gtk4:box-append navigation-box prev-model)
-      (gtk4:box-append navigation-box open-model)
       (gtk4:box-append navigation-box next-model)
 
       ;; Connect event controllers to the GL area
-      (gtk4:widget-add-controller area motion-controller)
-      (gtk4:widget-add-controller area button-controller)
-      (gtk4:widget-add-controller area wheel-controller)
+      (gtk4:widget-add-controller (renderer-area renderer) motion-controller)
+      (gtk4:widget-add-controller (renderer-area renderer) button-controller)
+      (gtk4:widget-add-controller (renderer-area renderer) wheel-controller)
       ;; Catch events from all buttons (there are no fucking touchpads here! ;)
       (setf (gtk4:gesture-single-button button-controller) 0)
 
+      ;; Randomize palette
+      (gtk4:connect
+       palette "clicked"
+       (lambda (widget)
+         (declare (ignore widget))
+         (funcall (renderer-palette-uploader renderer))
+         (gtk4:gl-area-queue-render (renderer-area renderer))))
+
       ;; Connect follow camera signal
-      (gtk4:connect follow-camera "toggled"
-                    (lambda (widget)
-                      (declare (ignore widget))
-                      (let ((state (gtk4:check-button-active-p follow-camera)))
-                        (setf (gtk4:widget-sensitive-p light-ϕ) (not state)
-                              (gtk4:widget-sensitive-p light-ψ) (not state)
-                              light-follows-camera-p state))
-                      (when light-follows-camera-p
-                        (setf (gtk4:range-value light-ϕ)
-                              (gtk4:range-value camera-ϕ)
-                              (gtk4:range-value light-ψ)
-                              (gtk4:range-value camera-ψ)))))
+      (gtk4:connect
+       follow-camera "toggled"
+       (lambda (widget)
+         (declare (ignore widget))
+         (let ((state (gtk4:check-button-active-p follow-camera)))
+           (setf (gtk4:widget-sensitive-p light-ϕ) (not state)
+                 (gtk4:widget-sensitive-p light-ψ) (not state)
+                 light-follows-camera-p state))
+         (when light-follows-camera-p
+           (setf (gtk4:range-value light-ϕ)
+                 (gtk4:range-value camera-ϕ)
+                 (gtk4:range-value light-ψ)
+                 (gtk4:range-value camera-ψ)))))
 
       ;; Connect "show light source" signal
-      (gtk4:connect show-light "toggled"
-                    (lambda (widget)
-                      (declare (ignore widget))
-                      (setf (scene-show-light-p scene)
-                            (gtk4:check-button-active-p show-light))
-                      (gtk4:gl-area-queue-render area)))
+      (gtk4:connect
+       show-light "toggled"
+       (lambda (widget)
+         (declare (ignore widget))
+         (setf (scene-show-light-p scene)
+               (gtk4:check-button-active-p show-light))
+         (gtk4:gl-area-queue-render (renderer-area renderer))))
 
       ;; Connect scale signals
       (macrolet ((%go (scale setter &optional aux-scale)
@@ -196,7 +209,7 @@
                                       ,@(when aux-scale
                                           `((when light-follows-camera-p
                                               (setf (gtk4:range-value ,aux-scale) value)))))
-                                    (gtk4:gl-area-queue-render area)))))
+                                    (gtk4:gl-area-queue-render (renderer-area renderer))))))
         (%go camera-ϕ scene-camera-ϕ light-ϕ)
         (%go camera-ψ scene-camera-ψ light-ψ)
         (%go camera-r scene-camera-r)
@@ -211,12 +224,12 @@
       (with-place (model-pointer-getter model-pointer-setter)
         (gtk4:connect
          prev-model "clicked"
-         (navigation-button-handler uploader
+         (navigation-button-handler (renderer-model-uploader renderer)
                                     #'model-pointer-getter #'model-pointer-setter
                                     #'step-backward))
         (gtk4:connect
          next-model "clicked"
-         (navigation-button-handler uploader
+         (navigation-button-handler (renderer-model-uploader renderer)
                                     #'model-pointer-getter #'model-pointer-setter
                                     #'step-forward))
 
@@ -225,7 +238,7 @@
            button "clicked"
            (lambda (widget)
              (declare (ignore widget))
-             (gtk4:gl-area-queue-render area)
+             (gtk4:gl-area-queue-render (renderer-area renderer))
              (setf (gtk4:label-text status-label)
                    (format-status-line (model-pointer-getter))))))
 
@@ -241,27 +254,28 @@
                           :cancel-label "Cancel")))
 
              (add-filters-to-file-chooser-dialog dialog)
-             (gtk4:connect dialog "response"
-                           (lambda (widget response)
-                             (declare (ignore widget))
-                             (when (= response gtk4:+response-type-accept+)
-                               (let* ((file (gio:file-path
-                                             (gtk4:file-chooser-file dialog)))
-                                      (model-pointer (zipper-to-model file)))
-                                 (handler-case
-                                     (progn
-                                       (funcall uploader
-                                                (load-connectivity
-                                                 (current-or-previous model-pointer)))
-                                       (model-pointer-setter model-pointer)
-                                       (setf
-                                        (gtk4:widget-sensitive-p next-model) t
-                                        (gtk4:widget-sensitive-p prev-model) t
-                                        (gtk4:label-text status-label)
-                                        (format-status-line model-pointer))
-                                       (gtk4:gl-area-queue-render area))
-                                   (loader-error (c)
-                                     (show-error-dialog c)))))))
+             (gtk4:connect
+              dialog "response"
+              (lambda (widget response)
+                (declare (ignore widget))
+                (when (= response gtk4:+response-type-accept+)
+                  (let* ((file (gio:file-path
+                                (gtk4:file-chooser-file dialog)))
+                         (model-pointer (zipper-to-model file)))
+                    (handler-case
+                        (progn
+                          (funcall (renderer-model-uploader renderer)
+                                   (load-connectivity
+                                    (current-or-previous model-pointer)))
+                          (model-pointer-setter model-pointer)
+                          (setf
+                           (gtk4:widget-sensitive-p next-model) t
+                           (gtk4:widget-sensitive-p prev-model) t
+                           (gtk4:label-text status-label)
+                           (format-status-line model-pointer))
+                          (gtk4:gl-area-queue-render (renderer-area renderer)))
+                      (loader-error (c)
+                        (show-error-dialog c)))))))
              (gtk4:native-dialog-show dialog)))))
 
       ;; "Mouse look"
@@ -280,7 +294,8 @@
            (lambda (widget x y)
              (declare (ignore widget))
              (when (or moving-camera-p moving-light-p)
-               (with-screen-size (width height) area
+               (with-screen-size (width height)
+                   (renderer-area renderer)
                  (let ((Δϕ (* mouse-sensitivity (/ (- x old-x) width)))
                        (Δψ (* mouse-sensitivity (/ (- y old-y) height))))
                    (flet ((modify-controls (control-ϕ control-ψ)
