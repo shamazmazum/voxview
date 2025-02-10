@@ -46,3 +46,12 @@ Install a produced binary to your binary directory if you wish.
 * Value noise texturing
 * Ambient and diffuse lights
 * Shadow map from a single point light source.
+
+## Tips
+
+You can view the next or the previous model in the same directory by pressing
+`Alt-d` or `Alt-a` respectively.
+
+Camera position can be controlled by mouse when the left mouse button is
+pressed. Position of the light source can be controlled in the same manner with
+the right button pressed and the "Follow camera" checkbox deselected.
