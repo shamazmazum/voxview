@@ -39,7 +39,7 @@
   (setf (gtk4:widget-hexpand-p widget) t
         (gtk4:widget-vexpand-p widget) t
         (gtk4:widget-halign    widget) gtk4:+align-fill+
-        (gtk4:widget-halign    widget) gtk4:+align-fill+))
+        (gtk4:widget-valign    widget) gtk4:+align-fill+))
 
 (defun scale (min max value step)
   (let ((scale (gtk4:make-scale :min min :max max :step step
