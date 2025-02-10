@@ -1,6 +1,6 @@
 (defsystem :voxview/library
     :name :voxview/library
-    :version "0.2.2"
+    :version "0.2.3"
     :author "Vasily Postnicov <shamaz.mazum@gmail.com>"
     :license "2-clause BSD"
     :serial t
@@ -19,7 +19,7 @@
 
 (defsystem :voxview/library/tests
     :name :voxview/library/tests
-    :version "0.2.2"
+    :version "0.2.3"
     :author "Vasily Postnicov <shamaz.mazum@gmail.com>"
     :license "2-clause BSD"
     :serial t
@@ -31,7 +31,7 @@
 
 (defsystem :voxview
     :name :voxview
-    :version "0.2.2"
+    :version "0.2.3"
     :author "Vasily Postnicov <shamaz.mazum@gmail.com>"
     :description "A tool to view voxel geometry"
     :license "2-clause BSD"

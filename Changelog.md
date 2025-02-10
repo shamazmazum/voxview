@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.2 → 0.2.3
+
+* Enhancement: Voxview now accepts arrays with `dtype='uint32'` in addition to
+  `dtype='bool'`. Each value in an array of integers is drawn with its own
+  color. Zero is still treated as no voxel and `1` has white color assigned with
+  it.
+
 ## 0.2.1 → 0.2.2
 
 * Enhancement: Faster model loading
