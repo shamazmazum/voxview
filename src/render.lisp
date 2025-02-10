@@ -72,8 +72,8 @@
 (defun make-palette-uploader (area state-getter)
   (lambda ()
     (gtk4:gl-area-make-current area)
-    (let ((gl-state (funcall state-getter)))
-      (upload-new-palette (gl-state-palbuffer gl-state)))))
+    (upload-new-palette (gl-state-palbuffer (funcall state-getter)))
+    (values)))
 
 (sera:-> make-realize-handler (setter)
          (values (sera:-> (gir::object-instance) (values &optional)) &optional))
