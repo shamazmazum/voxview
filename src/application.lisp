@@ -216,7 +216,8 @@
           (%connect light-ϕ scene-light-ϕ)
           (%connect light-ψ scene-light-ψ)
           (%connect camera-ϕ scene-camera-ϕ)
-          (%connect camera-ψ scene-camera-ψ))
+          (%connect camera-ψ scene-camera-ψ)
+          (%connect camera-r scene-camera-r))
 
         ;; Camera tracking
         (connect camera-ψ
