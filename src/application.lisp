@@ -186,7 +186,8 @@
                  light-follows-camera-p state))
          (when light-follows-camera-p
            (setf (gtk4:range-value light-ϕ)
-                 (gtk4:range-value camera-ϕ)
+                 (mod (+ (gtk4:range-value camera-ϕ) *light-Δϕ*)
+                      (* 2 pi))
                  (gtk4:range-value light-ψ)
                  (gtk4:range-value camera-ψ)))))
 
@@ -200,21 +201,33 @@
          (gtk4:gl-area-queue-render (renderer-area renderer))))
 
       ;; Connect scale signals
-      (macrolet ((%go (scale setter &optional aux-scale)
-                   `(gtk4:connect ,scale "value-changed"
-                                  (lambda (widget)
-                                    (declare (ignore widget))
-                                    (let ((value (gtk4:range-value ,scale)))
-                                      (setf (,setter scene) (float value 0f0))
-                                      ,@(when aux-scale
-                                          `((when light-follows-camera-p
-                                              (setf (gtk4:range-value ,aux-scale) value)))))
-                                    (gtk4:gl-area-queue-render (renderer-area renderer))))))
-        (%go camera-ϕ scene-camera-ϕ light-ϕ)
-        (%go camera-ψ scene-camera-ψ light-ψ)
-        (%go camera-r scene-camera-r)
-        (%go light-ϕ  scene-light-ϕ)
-        (%go light-ψ  scene-light-ψ))
+      (flet ((connect (scale f)
+               (gtk4:connect
+                scale "value-changed"
+                (lambda (widget)
+                  (declare (ignore widget))
+                  (let ((x (gtk4:range-value scale)))
+                    (funcall f x))
+                  (gtk4:gl-area-queue-render (renderer-area renderer))))))
+        (macrolet ((%connect (scale accessor)
+                     `(connect
+                       ,scale (lambda (x)
+                                (setf (,accessor scene) (float x 0.0))))))
+          (%connect light-ϕ scene-light-ϕ)
+          (%connect light-ψ scene-light-ψ)
+          (%connect camera-ϕ scene-camera-ϕ)
+          (%connect camera-ψ scene-camera-ψ))
+
+        ;; Camera tracking
+        (connect camera-ψ
+                 (lambda (v)
+                   (when light-follows-camera-p
+                     (setf (gtk4:range-value light-ψ) v))))
+        (connect camera-ϕ
+                 (lambda (v)
+                   (when light-follows-camera-p
+                     (setf (gtk4:range-value light-ϕ)
+                           (mod (+ v *light-Δϕ*) (* 2 pi)))))))
 
       ;; Set "light follows camera" knob to a correct position
       (setf (gtk4:check-button-active-p follow-camera) light-follows-camera-p)

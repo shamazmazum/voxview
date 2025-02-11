@@ -14,6 +14,10 @@
 (deftype getter () '(sera:-> () (values t &optional)))
 (deftype setter () '(sera:-> (t) (values t &optional)))
 
+(defparameter *light-Δϕ* 0.15
+  "Difference between positions of the camera and the light source
+when the latter tracks the first.")
+
 (defstruct scene
   ;; Camera
   (camera-fov 75.0 :type single-float)
@@ -22,9 +26,9 @@
   (camera-r 2.8 :type single-float)
 
   ;; Light
-  (light-ϕ 0.0 :type single-float)
-  (light-ψ 0.0 :type single-float)
-  (light-r 2.8 :type single-float)
+  (light-ϕ *light-Δϕ* :type single-float)
+  (light-ψ 0.0        :type single-float)
+  (light-r 2.8        :type single-float)
 
   ;; Light settings
   (show-light-p nil :type boolean)
