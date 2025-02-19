@@ -176,6 +176,5 @@ dimensions of the screen."
     (make-array (* +palette-color-number+ 4)
                 :element-type 'single-float
                 :initial-contents
-                (list* 1.0 1.0 1.0 1.0
-                       (loop repeat (* (1- +palette-color-number+) 4)
-                             collect (random 1.0 state))))))
+                (loop repeat (* +palette-color-number+ 4)
+                      collect (random 1.0 state)))))
