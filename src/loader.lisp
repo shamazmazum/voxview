@@ -47,7 +47,8 @@
 
 (sera:defconstructor model
   (connectivity  connectivity)
-  (max-dimension alex:positive-fixnum))
+  (max-dimension alex:positive-fixnum)
+  (in-color-p    boolean))
 
 (deftype data-loader ()
   '(sera:-> (pathname)
@@ -71,12 +72,13 @@
              :type (array-element-type model)))
     (model
      (compute-connectivity
+      ;; Convert to (UNSIGNED-BYTE 32) since COMPUTE-CONNECTIVITY
+      ;; works only with arrays of that element type.
       (if (eq (array-element-type model) 'bit)
-          ;; Convert to (UNSIGNED-BYTE 32) since COMPUTE-CONNECTIVITY
-          ;; works only with arrays of that element type.
           (recopy-from-bit-array model)
           model))
-     (apply #'max (array-dimensions model)))))
+     (apply #'max (array-dimensions model))
+     (not (eq (array-element-type model) 'bit)))))
 
 ;; A list of all supported formats and loaders
 (declaim (type list *loaders*))

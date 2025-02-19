@@ -38,8 +38,7 @@
     (gtk4:gl-area-make-current area)
 
     (let ((gl-state (funcall state-getter))
-          (connectivity (model-connectivity model))
-          (max-dimension (model-max-dimension model)))
+          (connectivity (model-connectivity model)))
       ;; Fill voxel positions buffer
       (gl:bind-buffer :array-buffer (gl-state-posbuffer gl-state))
       (fast-upload-buffer (connectivity-points connectivity) 4)
@@ -58,9 +57,16 @@
       ;; Set model dimensions
       (flet ((%go (program)
                (gl:use-program program)
-               (gl:uniformf (gl:get-uniform-location program "NVOXELS") max-dimension)))
+               (gl:uniformf (gl:get-uniform-location program "NVOXELS")
+                            (model-max-dimension model))))
         (%go (gl-state-pass-0 gl-state))
-        (%go (gl-state-pass-1 gl-state))))
+        (%go (gl-state-pass-1 gl-state)))
+
+      ;; Do we need to draw in color?
+      (let ((program (gl-state-pass-1 gl-state)))
+        (gl:use-program program)
+        (gl:uniformi (gl:get-uniform-location program "USE_COLOR_P")
+                     (if (model-in-color-p model) 1 0))))
     (values)))
 
 (defun upload-new-palette (palbuffer)

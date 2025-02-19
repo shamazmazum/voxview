@@ -144,18 +144,21 @@
    '((light-position  :vec3)
      (texture-sampler :sampler-3d)
      (shadow-sampler  :sampler-2d)
-     (palette-sampler :sampler-buffer))
+     (palette-sampler :sampler-buffer)
+     (use-color-p     :bool))
    '(:430)
    `((let* ((r (- light-position coord))
             (cosphi (/ (vari:dot r normal) (vari:length r)))
             (texture-coord (/ (1+ coord) 2))
             (texture-color (vari:swizzle (vari:texture texture-sampler texture-coord) :r))
-            (palette-color (vari:swizzle
-                            (vari:texel-fetch
-                             palette-sampler
-                             (glsl-symbols.operators:% (vari:int label)
-                                                       ,+palette-color-number+))
-                            :rgb)))
+            (palette-color (if use-color-p
+                               (vari:swizzle
+                                (vari:texel-fetch
+                                 palette-sampler
+                                 (glsl-symbols.operators:% (vari:int label)
+                                                           ,+palette-color-number+))
+                                :rgb)
+                               (vari:vec3 1))))
        (vari:vec4
         (* palette-color
            (+ (* 0.3
