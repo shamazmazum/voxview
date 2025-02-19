@@ -29,10 +29,9 @@
                  (if (zerop (safe-aref array i j (1+ k))) (ash 1 5) 0))))))
 
 (sera:defconstructor connectivity
-  (points        (simple-array (unsigned-byte 32) (*)))
-  (labelz        (simple-array (unsigned-byte 32) (*)))
-  (masks         (simple-array (unsigned-byte  8) (*)))
-  (max-dimension alex:positive-fixnum))
+  (points (simple-array (unsigned-byte 32) (*)))
+  (labelz (simple-array (unsigned-byte 32) (*)))
+  (masks  (simple-array (unsigned-byte  8) (*))))
 
 (sera:-> compute-connectivity ((simple-array (unsigned-byte 32) (* * *)))
          (values connectivity &optional))
@@ -57,5 +56,4 @@
     (connectivity
      (make-array (* n 3) :element-type '(unsigned-byte 32) :initial-contents ps)
      (make-array (* n 1) :element-type '(unsigned-byte 32) :initial-contents lbls)
-     (make-array (* n 1) :element-type '(unsigned-byte 8)  :initial-contents cs)
-     (apply #'max (array-dimensions array)))))
+     (make-array (* n 1) :element-type '(unsigned-byte 8)  :initial-contents cs))))

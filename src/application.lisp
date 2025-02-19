@@ -9,7 +9,7 @@
     (let ((pointer (funcall stepper (funcall model-getter))))
       (handler-case
           (progn
-            (funcall uploader (load-connectivity (current-or-previous pointer)))
+            (funcall uploader (load-model (current-or-previous pointer)))
             (funcall model-setter pointer))
         (loader-error (c)
           (show-error-dialog c))))))
@@ -279,8 +279,7 @@
                     (handler-case
                         (progn
                           (funcall (renderer-model-uploader renderer)
-                                   (load-connectivity
-                                    (current-or-previous model-pointer)))
+                                   (load-model (current-or-previous model-pointer)))
                           (model-pointer-setter model-pointer)
                           (setf
                            (gtk4:widget-sensitive-p next-model) t

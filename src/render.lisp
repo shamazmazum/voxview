@@ -30,14 +30,16 @@
   (projection-matrix (light-position-vector scene)
                      +shadow-width+ +shadow-height+))
 
-(deftype model-gpu-uploader () '(sera:-> (connectivity) (values &optional)))
+(deftype model-gpu-uploader () '(sera:-> (model) (values &optional)))
 (sera:-> make-gpu-uploader (gir::object-instance getter scene)
          (values model-gpu-uploader &optional))
 (defun make-gpu-uploader (area state-getter scene)
-  (lambda (connectivity)
+  (lambda (model)
     (gtk4:gl-area-make-current area)
 
-    (let ((gl-state (funcall state-getter)))
+    (let ((gl-state (funcall state-getter))
+          (connectivity (model-connectivity model))
+          (max-dimension (model-max-dimension model)))
       ;; Fill voxel positions buffer
       (gl:bind-buffer :array-buffer (gl-state-posbuffer gl-state))
       (fast-upload-buffer (connectivity-points connectivity) 4)
@@ -56,8 +58,7 @@
       ;; Set model dimensions
       (flet ((%go (program)
                (gl:use-program program)
-               (gl:uniformf (gl:get-uniform-location program "NVOXELS")
-                            (connectivity-max-dimension connectivity))))
+               (gl:uniformf (gl:get-uniform-location program "NVOXELS") max-dimension)))
         (%go (gl-state-pass-0 gl-state))
         (%go (gl-state-pass-1 gl-state))))
     (values)))

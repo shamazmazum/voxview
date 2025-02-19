@@ -7,7 +7,7 @@
     :pathname "library"
     :components ((:file "package")
                  (:file "do-indices")
-                 (:file "model")
+                 (:file "connectivity")
                  (:file "list-zipper"))
     :depends-on (:alexandria
                  :serapeum

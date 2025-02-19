@@ -87,10 +87,16 @@
       (error 'unknown-format :pathname pathname))
     (funcall (loader-loader loader) pathname)))
 
-(sera:-> load-connectivity ((or string pathname))
-         (values connectivity &optional))
-(defun load-connectivity (filename)
-  (compute-connectivity (load-data filename)))
+(sera:defconstructor model
+  (connectivity  connectivity)
+  (max-dimension alex:positive-fixnum))
+
+(sera:-> load-model ((or string pathname))
+         (values model &optional))
+(defun load-model (filename)
+  (let ((data (load-data filename)))
+    (model (compute-connectivity data)
+           (apply #'max (array-dimensions data)))))
 
 ;; List data files
 (sera:-> data-files ((or string pathname))
