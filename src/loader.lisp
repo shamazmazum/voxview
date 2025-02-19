@@ -1,13 +1,13 @@
 (in-package :voxview)
 
-(deftype data-loader ()
-  '(sera:-> (pathname)
-    (values (simple-array (unsigned-byte 32) (* * *)) &optional)))
-
-(sera:defconstructor loader
-  (type        string)
-  (description string)
-  (loader      data-loader))
+(declaim (inline recopy-from-bit-array))
+(sera:-> recopy-from-bit-array ((simple-array bit (* * *)))
+         (values (simple-array (unsigned-byte 32) (* * *)) &optional))
+(defun recopy-from-bit-array (array)
+  (let ((%array (make-array (array-dimensions array)
+                            :element-type '(unsigned-byte 32))))
+    (map-into (flatten %array) #'identity (flatten array))
+    %array))
 
 (define-condition loader-error (error)
   ()
@@ -45,40 +45,49 @@
               (content-error-dimensions c)
               (content-error-type       c)))))
 
-(declaim (inline recopy-from-bit-array))
-(sera:-> recopy-from-bit-array ((simple-array bit (* * *)))
-         (values (simple-array (unsigned-byte 32) (* * *)) &optional))
-(defun recopy-from-bit-array (array)
-  (let ((%array (make-array (array-dimensions array)
-                            :element-type '(unsigned-byte 32))))
-    (map-into (flatten %array) #'identity (flatten array))
-    %array))
+(sera:defconstructor model
+  (connectivity  connectivity)
+  (max-dimension alex:positive-fixnum))
 
+(deftype data-loader ()
+  '(sera:-> (pathname)
+    (values model &optional)))
+
+(sera:defconstructor loader
+  (type        string)
+  (description string)
+  (loader      data-loader))
+
+;; Support for numpy format
 (declaim (ftype data-loader load-npy-model))
 (defun load-npy-model (pathname)
   (declare (optimize (speed 3)))
   (let ((model (numpy-npy:load-array pathname)))
     (unless (and (or (equalp (array-element-type model) 'bit)
                      (equalp (array-element-type model) '(unsigned-byte 32)))
-                 (=  (array-rank         model) 3))
+                 (=  (array-rank model) 3))
       (error 'content-error
              :dimensions (array-dimensions model)
              :type (array-element-type model)))
-    (if (eq (array-element-type model) 'bit)
-        ;; Convert to (UNSIGNED-BYTE 32) since COMPUTE-CONNECTIVITY
-        ;; works only with arrays of that element type.
-        (recopy-from-bit-array model)
-        model)))
+    (model
+     (compute-connectivity
+      (if (eq (array-element-type model) 'bit)
+          ;; Convert to (UNSIGNED-BYTE 32) since COMPUTE-CONNECTIVITY
+          ;; works only with arrays of that element type.
+          (recopy-from-bit-array model)
+          model))
+     (apply #'max (array-dimensions model)))))
 
+;; A list of all supported formats and loaders
 (declaim (type list *loaders*))
 (defparameter *loaders*
   (list
    (loader "npy" "Numpy array (.npy)" #'load-npy-model)))
 
 
-(sera:-> load-data ((or string pathname))
-         (values (simple-array (unsigned-byte 32) (* * *)) &optional))
-(defun load-data (filename)
+(sera:-> load-model ((or string pathname))
+         (values model &optional))
+(defun load-model (filename)
   (let* ((pathname (pathname filename))
          (type     (pathname-type pathname))
          (loader (find type *loaders* :test #'string= :key #'loader-type)))
@@ -86,17 +95,6 @@
     (unless loader
       (error 'unknown-format :pathname pathname))
     (funcall (loader-loader loader) pathname)))
-
-(sera:defconstructor model
-  (connectivity  connectivity)
-  (max-dimension alex:positive-fixnum))
-
-(sera:-> load-model ((or string pathname))
-         (values model &optional))
-(defun load-model (filename)
-  (let ((data (load-data filename)))
-    (model (compute-connectivity data)
-           (apply #'max (array-dimensions data)))))
 
 ;; List data files
 (sera:-> data-files ((or string pathname))
