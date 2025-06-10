@@ -117,7 +117,8 @@
                            1d-2))
            (follow-camera (gtk4:make-check-button :label "Follow camera"))
            (show-light    (gtk4:make-check-button :label "Show light source"))
-           (open-model (gtk4:make-button :label "Open model"))
+           (open-model   (gtk4:make-button :label "Open model"))
+           (reload-model (gtk4:make-button :label "Reload model"))
            (next-model (gtk4:make-button :icon-name "go-next"))
            (prev-model (gtk4:make-button :icon-name "go-previous"))
            (palette    (gtk4:make-button :label "Randomize palette"))
@@ -133,7 +134,8 @@
             (gtk4:frame-child camera-frame) camera-box
             (gtk4:frame-child light-frame) light-box
             (gtk4:widget-sensitive-p prev-model) nil
-            (gtk4:widget-sensitive-p next-model) nil)
+            (gtk4:widget-sensitive-p next-model) nil
+            (gtk4:widget-sensitive-p reload-model) nil)
 
       (expand-widget (renderer-area renderer))
       (gtk4:box-append toplevel-box big-box)
@@ -144,6 +146,7 @@
       (gtk4:box-append control-box light-frame)
       (gtk4:box-append control-box buttons-box)
       (gtk4:box-append buttons-box open-model)
+      (gtk4:box-append buttons-box reload-model)
       (gtk4:box-append buttons-box palette)
       (gtk4:box-append buttons-box navigation-box)
 
@@ -284,12 +287,27 @@
                           (setf
                            (gtk4:widget-sensitive-p next-model) t
                            (gtk4:widget-sensitive-p prev-model) t
+                           (gtk4:widget-sensitive-p reload-model) t
                            (gtk4:label-text status-label)
                            (format-status-line model-pointer))
                           (gtk4:gl-area-queue-render (renderer-area renderer)))
                       (loader-error (c)
                         (show-error-dialog c)))))))
-             (gtk4:native-dialog-show dialog)))))
+             (gtk4:native-dialog-show dialog))))
+
+        (gtk4:connect
+         reload-model "clicked"
+         (lambda (widget)
+           (declare (ignore widget))
+           (let* ((model-pointer (model-pointer-getter))
+                  (model (current-or-previous model-pointer)))
+             (handler-case
+                 (progn
+                   (funcall (renderer-model-uploader renderer)
+                            (load-model model))
+                   (gtk4:gl-area-queue-render (renderer-area renderer)))
+               (loader-error (c)
+               (show-error-dialog c)))))))
 
       ;; "Mouse look"
       ;; TODO: A separate control for sensitivity?
