@@ -38,11 +38,11 @@
  (:class qlot/source/ql:source-ql
   :initargs (:%version :latest)
   :version "ql-2022-02-20"))
-("numpy-npy" .
- (:class qlot/source/http:source-http
-  :initargs (:url "https://github.com/shamazmazum/numpy-npy/archive/refs/tags/v0.3.tar.gz" :archive-md5 nil)
-  :version "http-ab2cc5b75a58913f458e516608bf2ef8"))
 ("melisgl-named-readtables" .
  (:class qlot/source/ultralisp:source-ultralisp
   :initargs (:%version :latest)
   :version "ultralisp-20251225184000"))
+("numpy-npy" .
+ (:class qlot/source/github:source-github
+  :initargs (:repos "shamazmazum/numpy-npy" :ref nil :branch nil :tag "v0.3")
+  :version "github-4a4cb5a3101860039a871c8c4842604c6d328edd"))

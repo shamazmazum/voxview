@@ -7,5 +7,5 @@ ql serapeum
 ultralisp shamazmazum-cl-value-noise
 ultralisp shamazmazum-stateless-iterators
 ql cl-fad
-http numpy-npy https://github.com/shamazmazum/numpy-npy/archive/refs/tags/v0.3.tar.gz
 ultralisp melisgl-named-readtables
+github shamazmazum/numpy-npy :tag v0.3
