@@ -40,15 +40,3 @@
             (vari:vec3 -1  1  1)
             (vari:vec3  1  1  1)))))
      ,@body))
-
-
-(varjo:define-vari-macro with-normals-bound (normals-sym &body body)
-  `(let ((,normals-sym
-          (vector
-           (vari:vec3 -1  0  0)
-           (vari:vec3  1  0  0)
-           (vari:vec3  0 -1  0)
-           (vari:vec3  0  1  0)
-           (vari:vec3  0  0 -1)
-           (vari:vec3  0  0  1))))
-     ,@body))

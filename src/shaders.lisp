@@ -51,20 +51,19 @@
    '(:430)
    '((declare (vari:output-primitive :kind :triangle-strip :max-vertices 26))
      (with-vertices-bound vertices
-       (with-normals-bound normals
-         (let ((connectivity (aref mask 0)))
-           (dotimes (plane 6)
-             (unless (zerop (logand connectivity (vari:<< 1 plane)))
-               (dotimes (vertex-idx 4)
-                 (let ((coord (transform-coords
-                               (vari:swizzle (vari:gl-position (aref vari:gl-in 0)) :xyz)
-                               (aref (aref vertices plane) vertex-idx)
-                               nvoxels)))
-                   ;; Only emit coordinates of a voxel
-                   (setf vari:gl-position
-                         (* projection (vari:vec4 coord 1))))
-                 (vari:emit-vertex))
-               (vari:end-primitive)))))))
+       (let ((connectivity (aref mask 0)))
+         (dotimes (plane 6)
+           (unless (zerop (logand connectivity (vari:<< 1 plane)))
+             (dotimes (vertex-idx 4)
+               (let ((coord (transform-coords
+                             (vari:swizzle (vari:gl-position (aref vari:gl-in 0)) :xyz)
+                             (aref (aref vertices plane) vertex-idx)
+                             nvoxels)))
+                 ;; Only emit coordinates of a voxel
+                 (setf vari:gl-position
+                       (* projection (vari:vec4 coord 1))))
+               (vari:emit-vertex))
+             (vari:end-primitive))))))
    t :points))
 
 (declaim (type varjo.internals:fragment-stage *fragment-pass-0*))
@@ -109,28 +108,26 @@
    '(:430)
    '((declare (vari:output-primitive :kind :triangle-strip :max-vertices 26))
      (with-vertices-bound vertices
-       (with-normals-bound normals
-           (let ((connectivity (aref mask 0)))
-             (dotimes (plane 6)
-               (unless (zerop (logand connectivity (vari.cl::<< 1 plane)))
-                 (dotimes (vertex-idx 4)
-                   (let ((coord (transform-coords
-                                 (vari:swizzle (vari:gl-position (aref vari:gl-in 0)) :xyz)
-                                 (aref (aref vertices plane) vertex-idx)
-                                 nvoxels)))
-                     (setf vari:gl-position
-                           (* c-projection (vari:vec4 coord 1)))
-                     ;; This shader is much like the shader in the
-                     ;; first pass, only now it also emits coordinates
-                     ;; of a vertex in the world space + normal vector.
-                     (vari:emit-data
-                      (values coord
-                              (:flat (aref label 0))
-                              (aref normals plane)
-                              ;; + Also projection of this vertex onto the shadow map.
-                              (* l-projection (vari:vec4 coord 1)))))
-                   (vari:emit-vertex))
-                 (vari:end-primitive)))))))
+       (let ((connectivity (aref mask 0)))
+         (dotimes (plane 6)
+           (unless (zerop (logand connectivity (vari.cl::<< 1 plane)))
+             (dotimes (vertex-idx 4)
+               (let ((coord (transform-coords
+                             (vari:swizzle (vari:gl-position (aref vari:gl-in 0)) :xyz)
+                             (aref (aref vertices plane) vertex-idx)
+                             nvoxels)))
+                 (setf vari:gl-position
+                       (* c-projection (vari:vec4 coord 1)))
+                 ;; This shader is much like the shader in the
+                 ;; first pass, only now it also emits coordinates
+                 ;; of a vertex in the world space
+                 (vari:emit-data
+                  (values coord
+                          (:flat (aref label 0))
+                          ;; + Also projection of this vertex onto the shadow map.
+                          (* l-projection (vari:vec4 coord 1)))))
+               (vari:emit-vertex))
+             (vari:end-primitive))))))
    t :points))
 
 (declaim (type varjo.internals:fragment-stage *fragment-pass-1*))
@@ -139,7 +136,6 @@
    :fragment
    '((coord      :vec3)
      (label      :uint :flat)
-     (normal     :vec3)
      (light-proj :vec4))
    '((light-position  :vec3)
      (texture-sampler :sampler-3d)
@@ -148,6 +144,10 @@
      (use-color-p     :bool))
    '(:430)
    `((let* ((r (- light-position coord))
+            ;; What a naming! D-FDX!
+            (normal (vari:normalize
+                     (vari:cross (vari:d-fdx coord)
+                                 (vari:d-fdy coord))))
             (cosphi (/ (vari:dot r normal) (vari:length r)))
             (texture-coord (/ (1+ coord) 2))
             (texture-color (vari:swizzle (vari:texture texture-sampler texture-coord) :r))
