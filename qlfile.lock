@@ -2,10 +2,6 @@
  (:class qlot/source/dist:source-dist
   :initargs (:distribution "https://beta.quicklisp.org/dist/quicklisp.txt" :%version :latest)
   :version "2024-10-12"))
-("varjo" .
- (:class qlot/source/ql:source-ql
-  :initargs (:%version :latest)
-  :version "ql-2021-01-24"))
 ("bohonghuang-cl-gtk4" .
  (:class qlot/source/ultralisp:source-ultralisp
   :initargs (:%version :latest)
@@ -46,3 +42,7 @@
  (:class qlot/source/github:source-github
   :initargs (:repos "shamazmazum/numpy-npy" :ref nil :branch nil :tag "v0.3")
   :version "github-4a4cb5a3101860039a871c8c4842604c6d328edd"))
+("varjo" .
+ (:class qlot/source/github:source-github
+  :initargs (:repos "cbaggers/varjo" :ref nil :branch nil :tag nil)
+  :version "github-68132f727d17d953ae1f7ac5dbc184df83a65f20"))

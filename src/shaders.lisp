@@ -54,7 +54,7 @@
        (with-normals-bound normals
          (let ((connectivity (aref mask 0)))
            (dotimes (plane 6)
-             (unless (zerop (logand connectivity (vari.cl::<< 1 plane)))
+             (unless (zerop (logand connectivity (vari:<< 1 plane)))
                (dotimes (vertex-idx 4)
                  (let ((coord (transform-coords
                                (vari:swizzle (vari:gl-position (aref vari:gl-in 0)) :xyz)

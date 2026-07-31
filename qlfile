@@ -1,4 +1,3 @@
-ql varjo
 ultralisp bohonghuang-cl-gtk4
 ql cl-opengl
 ql rtg-math
@@ -9,3 +8,4 @@ ultralisp shamazmazum-stateless-iterators
 ql cl-fad
 ultralisp melisgl-named-readtables
 github shamazmazum/numpy-npy :tag v0.3
+github cbaggers/varjo
