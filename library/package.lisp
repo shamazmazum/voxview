@@ -4,14 +4,13 @@
                     (#:alex #:alexandria)
                     (#:si   #:stateless-iterators))
   (:export #:do-indices
-           ;; Connectivity data
-           #:connectivity
-           #:connectivity-points
-           #:connectivity-masks
-           #:connectivity-max-dimension
-           #:connectivity-labelz
-           ;; Connectivity computation
-           #:compute-connectivity
+           ;; Model
+           #:model
+           #:model-points
+           #:model-indices
+           #:model-labels
+           ;; Model computation
+           #:compute-model
            ;; List zippers
            #:list-zipper
            #:stepper
