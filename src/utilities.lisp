@@ -57,6 +57,8 @@ when the latter tracks the first.")
   (pass-1      fixnum)
   (texture     fixnum)
   (palette     fixnum)
+  ;; Pass 2: rendering the caps
+  (pass-2      fixnum)
   ;; Light source rendering
   (ls-program  fixnum))
 

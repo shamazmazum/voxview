@@ -81,6 +81,7 @@
     ;; Create resources
     (let ((pass-0 (create-program *pass-0*)) ; Shadowmap program
           (pass-1 (create-program *pass-1*)) ; Rendering program
+          (pass-2 (create-program *pass-2*)) ; Drawing the caps
           (ls-program
            (create-program
             *light-source-shaders*))         ; Light source rendering program
@@ -133,7 +134,7 @@
       (funcall setter
                (gl-state vao posbuffer labelbuffer indbuffer palbuffer
                          pass-0 framebuffer shadowmap
-                         pass-1 texture palette ls-program)))
+                         pass-1 texture palette pass-2 ls-program)))
     (values)))
 
 (sera:-> make-unrealize-handler (getter)
@@ -153,6 +154,7 @@
       (gl:delete-vertex-arrays (list (gl-state-vao gl-state)))
       (gl:delete-program (gl-state-pass-0 gl-state))
       (gl:delete-program (gl-state-pass-1 gl-state))
+      (gl:delete-program (gl-state-pass-2 gl-state))
       (gl:delete-program (gl-state-ls-program gl-state)))
     (values)))
 
@@ -256,8 +258,19 @@
          ;; Render pass 1
          (render-scene gl-state scene)
 
-         ;; Draw interior if needed
+         ;; Draw the caps if needed
          (when (scene-plane-p scene)
+           ;; Set uniforms
+           (gl:use-program (gl-state-pass-2 gl-state))
+
+           ;; Camera projection
+           (set-mat4-uniform (gl-state-pass-2 gl-state) "PROJECTION"
+                             (camera-projection-matrix area scene))
+
+           ;; Set cutting plane
+           (set-vec-uniform (gl-state-pass-2 gl-state) "CP"
+                            (cutting-plane scene))
+
            (gl:cull-face :front)
            (render-scene gl-state scene))
 

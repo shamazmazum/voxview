@@ -120,6 +120,37 @@
    (list *vertex-pass-1*
          *fragment-pass-1*)))
 
+;; Pass 2: Render the caps for cut geometry
+;; TODO: Lighting
+(declaim (type varjo.internals:vertex-stage *vertex-pass-2*))
+(defparameter *vertex-pass-2*
+  (varjo:make-stage
+   :vertex
+   '((position   :vec3)
+     (label      :uint)) ; Not used
+   '((projection :mat4)  ; On screen projection operator
+     (cp         :vec4)) ; Cutting plane
+   '(:430)
+   `((let ((pos4 (vari:vec4 position 1)))
+       (values (* projection pos4)
+               (vari:dot cp pos4))))))
+
+(declaim (type varjo.internals:fragment-stage *fragment-pass-2*))
+(defparameter *fragment-pass-2*
+  (varjo:make-stage
+   :fragment
+   '((cp-distance :float))
+   '()
+   '(:430)
+   ;; The threshold distance is not zero not to cut the caps
+   `((when (< cp-distance 0)
+       (vari:discard))
+     (vari:vec4 (vari:vec3 0.5) 1))))
+
+(defparameter *pass-2*
+  (varjo:rolling-translate
+   (list *vertex-pass-2*
+         *fragment-pass-2*)))
 
 ;; Light source shader
 (declaim (type varjo.internals:vertex-stage *vertex-light-source*))
