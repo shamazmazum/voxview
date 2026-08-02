@@ -55,8 +55,8 @@
       ;; Do we need to draw in color?
       (let ((program (gl-state-pass-1 gl-state)))
         (gl:use-program program)
-        (gl:uniformi (gl:get-uniform-location program "USE_COLOR_P")
-                     (if (not (zerop (length (model-labels model)))) 1 0))))
+        (set-bool-uniform program "USE_COLOR_P"
+                          (not (zerop (length (model-labels model)))))))
     (values)))
 
 (defun upload-new-palette (palbuffer)
@@ -185,8 +185,6 @@
        (let ((gl-state (funcall state-getter))
              ;; GTK reassigns the framebuffer almost each frame. This is really stupid
              (framebuffer (gl:get-integer :framebuffer-binding)))
-         (when (scene-plane-p scene)
-           (gl:enable :clip-distance0))
          (gl:enable :cull-face)
          ;; Pass 0: Render shadows
          (gl:cull-face :front)
@@ -202,6 +200,8 @@
          ;; Set cutting plane
          (set-vec-uniform (gl-state-pass-0 gl-state) "CP"
                           (cutting-plane scene))
+         (set-bool-uniform (gl-state-pass-0 gl-state) "USE_CP_P"
+                           (scene-plane-p scene))
 
          ;; Render pass 0
          (render-scene gl-state scene)
@@ -227,6 +227,8 @@
          ;; Set cutting plane
          (set-vec-uniform (gl-state-pass-1 gl-state) "CP"
                           (cutting-plane scene))
+         (set-bool-uniform (gl-state-pass-1 gl-state) "USE_CP_P"
+                           (scene-plane-p scene))
 
          ;; Light position
          (set-vec-uniform (gl-state-pass-1 gl-state) "LIGHT_POSITION"
@@ -256,8 +258,6 @@
 
          (when (scene-show-light-p scene)
            ;; Render light source
-           (when (scene-plane-p scene)
-             (gl:disable :clip-distance0))
            (gl:disable :cull-face)
 
            (gl:use-program (gl-state-ls-program gl-state))

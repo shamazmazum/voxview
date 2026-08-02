@@ -171,6 +171,11 @@ dimensions of the screen."
                  (gl:get-program-info-log program))))
       program)))
 
+(defun set-bool-uniform (program uniform value)
+  (gl:uniformi
+   (gl:get-uniform-location program uniform)
+   (if value 1 0)))
+
 (defun set-mat4-uniform (program uniform matrix)
   (gl:uniform-matrix
    (gl:get-uniform-location program uniform)

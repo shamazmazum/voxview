@@ -32,19 +32,20 @@
      (cp         :vec4)) ; Cutting plane
    '(:430)
    `((let ((pos4 (vari:vec4 position 1)))
-       (setf (aref vari:gl-clip-distance 0)
-             (vari:dot pos4 cp))
        (values
-        (* projection pos4))))))
+        (* projection pos4)
+        (vari:dot pos4 cp))))))
 
 (declaim (type varjo.internals:fragment-stage *fragment-pass-0*))
 (defparameter *fragment-pass-0*
   (varjo:make-stage
    :fragment
-   '()
-   '()
+   '((cp-distance :float))
+   '((use-cp-p    :bool))
    '(:450)
-   '((values))))
+   '((when (and use-cp-p (< cp-distance 0))
+       (vari:discard))
+     (values))))
 
 (defparameter *pass-0*
   (varjo:rolling-translate
@@ -64,29 +65,33 @@
      (cp           :vec4)) ; Cutting plane
    '(:430)
    `((let ((pos4 (vari:vec4 position 1)))
-       (setf (aref vari:gl-clip-distance 0)
-             (vari:dot pos4 cp))
        (values
         (* c-projection pos4)
         position
         (:flat label)
         ;; + Also projection of this vertex onto the shadow map.
-        (* l-projection pos4))))))
+        (* l-projection pos4)
+        ;; And distance to the cutting plane
+        (vari:dot pos4 cp))))))
 
 (declaim (type varjo.internals:fragment-stage *fragment-pass-1*))
 (defparameter *fragment-pass-1*
   (varjo:make-stage
    :fragment
-   '((coord      :vec3)
-     (label      :uint :flat)
-     (light-proj :vec4))
+   '((coord       :vec3)
+     (label       :uint :flat)
+     (light-proj  :vec4)
+     (cp-distance :float))
    '((light-position  :vec3)
      (texture-sampler :sampler-3d)
      (shadow-sampler  :sampler-2d)
      (palette-sampler :sampler-buffer)
-     (use-color-p     :bool))
+     (use-color-p     :bool)
+     (use-cp-p        :bool))
    '(:430)
-   `((let* ((r (- light-position coord))
+   `((when (and use-cp-p (< cp-distance 0))
+       (vari:discard))
+     (let* ((r (- light-position coord))
             ;; What a naming! D-FDX!
             (normal (vari:normalize
                      (vari:cross (vari:d-fdx coord)
