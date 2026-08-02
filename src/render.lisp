@@ -171,7 +171,6 @@
 
   (gl:disable-vertex-attrib-array 1)
   (gl:disable-vertex-attrib-array 0))
-  
 
 (sera:-> make-draw-handler (getter scene)
          (values (sera:-> (gir::object-instance gir::object-instance)
