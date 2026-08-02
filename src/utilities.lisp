@@ -33,6 +33,12 @@ when the latter tracks the first.")
   ;; Light settings
   (show-light-p nil :type boolean)
 
+  ;; Cutting plane
+  (plane-ϕ 0.0 :type single-float)
+  (plane-ψ 0.0 :type single-float)
+  (plane-d 0.0 :type single-float)
+  (plane-p nil :type boolean)
+
   ;; How many elements to render?
   (nelements 0 :type (unsigned-byte 32)))
 
@@ -80,6 +86,20 @@ when the latter tracks the first.")
   (object-position (scene-camera-r scene)
                    (scene-camera-ϕ scene)
                    (scene-camera-ψ scene)))
+
+(sera:-> cutting-plane (scene)
+         (values rtg-math.types:vec4 &optional))
+(defun cutting-plane (scene)
+  (let* ((ϕ (scene-plane-ϕ scene))
+         (ψ (scene-plane-ψ scene))
+         (d (scene-plane-d scene))
+         (cisϕ (cis ϕ))
+         (cisψ (cis ψ)))
+    (rtg-math.vector4:make
+     (* (realpart cisϕ) (realpart cisψ))
+     (* (imagpart cisϕ) (realpart cisψ))
+     (* (imagpart cisψ))
+     (- d))))
 
 (defun fast-upload-buffer (vector element-size &key (target :array-buffer))
   (cffi:with-pointer-to-vector-data (ptr vector)
@@ -156,12 +176,23 @@ dimensions of the screen."
    (gl:get-uniform-location program uniform)
    4 (vector matrix) nil))
 
-(defun set-vec3-uniform (program uniform vector)
-  (gl:uniformf
-   (gl:get-uniform-location program uniform)
-   (aref vector 0)
-   (aref vector 1)
-   (aref vector 2)))
+(defun set-vec-uniform (program uniform vector)
+  (let ((location (gl:get-uniform-location program uniform)))
+    (ecase (length vector)
+      (1 (gl:uniformf location
+                      (aref vector 0)))
+      (2 (gl:uniformf location
+                      (aref vector 0)
+                      (aref vector 1)))
+      (3 (gl:uniformf location
+                      (aref vector 0)
+                      (aref vector 1)
+                      (aref vector 2)))
+      (4 (gl:uniformf location
+                      (aref vector 0)
+                      (aref vector 1)
+                      (aref vector 2)
+                      (aref vector 3))))))
 
 (declaim (inline flatten))
 (defun flatten (array)

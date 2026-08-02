@@ -26,12 +26,16 @@
 (defparameter *vertex-pass-0*
   (varjo:make-stage
    :vertex
-   '((position :vec3)    ; Position of a vertex in the world system.
-     (label    :uint))   ; Label of a voxel. Not used in this stage
-   '((projection :mat4)) ; On screen projection operator
+   '((position   :vec3)  ; Position of a vertex in the world system.
+     (label      :uint)) ; Label of a voxel. Not used in this stage
+   '((projection :mat4)  ; On screen projection operator
+     (cp         :vec4)) ; Cutting plane
    '(:430)
-   `((values
-      (* projection (vari:vec4 position 1))))))
+   `((let ((pos4 (vari:vec4 position 1)))
+       (setf (aref vari:gl-clip-distance 0)
+             (vari:dot pos4 cp))
+       (values
+        (* projection pos4))))))
 
 (declaim (type varjo.internals:fragment-stage *fragment-pass-0*))
 (defparameter *fragment-pass-0*
@@ -56,9 +60,12 @@
    '((position     :vec3)  ; Position of a vertex in the world system.
      (label        :uint)) ; Label of a voxel. Pass-through
    '((c-projection :mat4)  ; Camera->screen projection
-     (l-projection :mat4)) ; Light->shadow map projection
+     (l-projection :mat4)  ; Light->shadow map projection
+     (cp           :vec4)) ; Cutting plane
    '(:430)
    `((let ((pos4 (vari:vec4 position 1)))
+       (setf (aref vari:gl-clip-distance 0)
+             (vari:dot pos4 cp))
        (values
         (* c-projection pos4)
         position

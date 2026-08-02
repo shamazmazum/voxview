@@ -85,6 +85,7 @@
            (control-frame (gtk4:make-frame :label "Controls"))
            (camera-frame  (gtk4:make-frame :label "Camera"))
            (light-frame   (gtk4:make-frame :label "Light"))
+           (plane-frame   (gtk4:make-frame :label "Cutting plane"))
            (toplevel-box   (gtk4:make-box :orientation gtk4:+orientation-vertical+
                                           :spacing 2))
            (big-box        (gtk4:make-box :orientation gtk4:+orientation-horizontal+
@@ -94,6 +95,8 @@
            (camera-box     (gtk4:make-box :orientation gtk4:+orientation-vertical+
                                           :spacing 5))
            (light-box      (gtk4:make-box :orientation gtk4:+orientation-vertical+
+                                          :spacing 5))
+           (plane-box      (gtk4:make-box :orientation gtk4:+orientation-vertical+
                                           :spacing 5))
            (navigation-box (gtk4:make-box :orientation gtk4:+orientation-horizontal+
                                           :spacing 2))
@@ -117,6 +120,16 @@
                            1d-2))
            (follow-camera (gtk4:make-check-button :label "Follow camera"))
            (show-light    (gtk4:make-check-button :label "Show light source"))
+           (enable-plane  (gtk4:make-check-button :label "Enable cutting plane"))
+
+           (plane-ϕ (scale 0d0 (* 2 pi)
+                           (scene-plane-ϕ scene) 1d-1))
+           (plane-ψ (scale (+ (- (/ pi 2)) 0.01)
+                           (- (+ (/ pi 2)) 0.01)
+                           (scene-light-ψ scene)
+                           1d-2))
+           (plane-d (scale -1.5d0 +1.5d0 (scene-plane-d scene) 1d-1))
+
            (open-model   (gtk4:make-button :label "Open model"))
            (reload-model (gtk4:make-button :label "Reload model"))
            (next-model (gtk4:make-button :icon-name "go-next"))
@@ -133,6 +146,7 @@
             (gtk4:frame-child control-frame) control-box
             (gtk4:frame-child camera-frame) camera-box
             (gtk4:frame-child light-frame) light-box
+            (gtk4:frame-child plane-frame) plane-box
             (gtk4:widget-sensitive-p prev-model) nil
             (gtk4:widget-sensitive-p next-model) nil
             (gtk4:widget-sensitive-p reload-model) nil)
@@ -144,6 +158,7 @@
       (gtk4:box-append big-box control-frame)
       (gtk4:box-append control-box camera-frame)
       (gtk4:box-append control-box light-frame)
+      (gtk4:box-append control-box plane-frame)
       (gtk4:box-append control-box buttons-box)
       (gtk4:box-append buttons-box open-model)
       (gtk4:box-append buttons-box reload-model)
@@ -158,6 +173,11 @@
       (append-with-label light-box light-ψ "ψ")
       (gtk4:box-append light-box follow-camera)
       (gtk4:box-append light-box show-light)
+
+      (append-with-label plane-box plane-ϕ "ϕ")
+      (append-with-label plane-box plane-ψ "ψ")
+      (append-with-label plane-box plane-d "d")
+      (gtk4:box-append plane-box enable-plane)
 
       ;; Looks ugly
       (gtk4:box-append navigation-box prev-model)
@@ -203,6 +223,15 @@
                (gtk4:check-button-active-p show-light))
          (gtk4:gl-area-queue-render (renderer-area renderer))))
 
+      ;; Cutting plane checkbox
+      (gtk4:connect
+       enable-plane "toggled"
+       (lambda (widget)
+         (declare (ignore widget))
+         (setf (scene-plane-p scene)
+               (gtk4:check-button-active-p enable-plane))
+         (gtk4:gl-area-queue-render (renderer-area renderer))))
+
       ;; Connect scale signals
       (flet ((connect (scale f)
                (gtk4:connect
@@ -216,11 +245,14 @@
                      `(connect
                        ,scale (lambda (x)
                                 (setf (,accessor scene) (float x 0.0))))))
-          (%connect light-ϕ scene-light-ϕ)
-          (%connect light-ψ scene-light-ψ)
+          (%connect light-ϕ  scene-light-ϕ)
+          (%connect light-ψ  scene-light-ψ)
           (%connect camera-ϕ scene-camera-ϕ)
           (%connect camera-ψ scene-camera-ψ)
-          (%connect camera-r scene-camera-r))
+          (%connect camera-r scene-camera-r)
+          (%connect plane-ϕ  scene-plane-ϕ)
+          (%connect plane-ψ  scene-plane-ψ)
+          (%connect plane-d  scene-plane-d))
 
         ;; Camera tracking
         (connect camera-ψ

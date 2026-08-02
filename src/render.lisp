@@ -185,6 +185,8 @@
        (let ((gl-state (funcall state-getter))
              ;; GTK reassigns the framebuffer almost each frame. This is really stupid
              (framebuffer (gl:get-integer :framebuffer-binding)))
+         (when (scene-plane-p scene)
+           (gl:enable :clip-distance0))
          (gl:enable :cull-face)
          ;; Pass 0: Render shadows
          (gl:cull-face :front)
@@ -196,6 +198,10 @@
          ;; Set light space projection matrix
          (set-mat4-uniform (gl-state-pass-0 gl-state) "PROJECTION"
                            (light-projection-matrix scene))
+
+         ;; Set cutting plane
+         (set-vec-uniform (gl-state-pass-0 gl-state) "CP"
+                          (cutting-plane scene))
 
          ;; Render pass 0
          (render-scene gl-state scene)
@@ -218,9 +224,13 @@
          (set-mat4-uniform (gl-state-pass-1 gl-state) "L_PROJECTION"
                            (light-projection-matrix scene))
 
+         ;; Set cutting plane
+         (set-vec-uniform (gl-state-pass-1 gl-state) "CP"
+                          (cutting-plane scene))
+
          ;; Light position
-         (set-vec3-uniform (gl-state-pass-1 gl-state) "LIGHT_POSITION"
-                           (light-position-vector scene))
+         (set-vec-uniform (gl-state-pass-1 gl-state) "LIGHT_POSITION"
+                          (light-position-vector scene))
 
          ;; Texture sampler
          (gl:uniformi
@@ -246,13 +256,15 @@
 
          (when (scene-show-light-p scene)
            ;; Render light source
+           (when (scene-plane-p scene)
+             (gl:disable :clip-distance0))
            (gl:disable :cull-face)
 
            (gl:use-program (gl-state-ls-program gl-state))
 
            ;; Set light position
-           (set-vec3-uniform (gl-state-ls-program gl-state) "LIGHT_POSITION"
-                             (light-position-vector scene))
+           (set-vec-uniform (gl-state-ls-program gl-state) "LIGHT_POSITION"
+                            (light-position-vector scene))
 
            ;; Set projection matrix
            (set-mat4-uniform (gl-state-ls-program gl-state) "PROJECTION"
