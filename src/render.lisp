@@ -256,6 +256,11 @@
          ;; Render pass 1
          (render-scene gl-state scene)
 
+         ;; Draw interior if needed
+         (when (scene-plane-p scene)
+           (gl:cull-face :front)
+           (render-scene gl-state scene))
+
          (when (scene-show-light-p scene)
            ;; Render light source
            (gl:disable :cull-face)
