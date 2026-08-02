@@ -1,11 +1,5 @@
 (in-package :voxview)
 
-(varjo:define-vari-function transform-coords ((position :vec3)
-                                              (vertex   :vec3)
-                                              (divisor  :float))
-  (+ (/ (* position 2) divisor) -1
-     (/ (1+ vertex) divisor)))
-
 (varjo:define-vari-function illumination ((vector :vec4) (sampler :sampler-2d))
   (let* ((step (/ 1.0 (vari:texture-size sampler 0)))
          (illumination 0.0)
@@ -32,39 +26,12 @@
 (defparameter *vertex-pass-0*
   (varjo:make-stage
    :vertex
-   '((position :vec3)  ; Position of a voxel in the world system.
-     (label    :uint)  ; Label of a voxel. Not used in this stage
-     (mask     :uint)) ; Connectivity mask. Used bits are 0 to 7
-   '()
+   '((position :vec3)    ; Position of a vertex in the world system.
+     (label    :uint))   ; Label of a voxel. Not used in this stage
+   '((projection :mat4)) ; On screen projection operator
    '(:430)
-   ;; A simple pass-through shader
-   '((values (vari:vec4 position 1) mask))
-   t :points))
-
-(declaim (type varjo.internals:geometry-stage *geometry-pass-0*))
-(defparameter *geometry-pass-0*
-  (varjo:make-stage
-   :geometry
-   '((mask (:uint *)))   ; Connectivity mask (passed through the previous stage)
-   '((nvoxels    :float) ; Maximal dimension of a scene
-     (projection :mat4)) ; Projection matrix
-   '(:430)
-   '((declare (vari:output-primitive :kind :triangle-strip :max-vertices 26))
-     (with-vertices-bound vertices
-       (let ((connectivity (aref mask 0)))
-         (dotimes (plane 6)
-           (unless (zerop (logand connectivity (vari:<< 1 plane)))
-             (dotimes (vertex-idx 4)
-               (let ((coord (transform-coords
-                             (vari:swizzle (vari:gl-position (aref vari:gl-in 0)) :xyz)
-                             (aref (aref vertices plane) vertex-idx)
-                             nvoxels)))
-                 ;; Only emit coordinates of a voxel
-                 (setf vari:gl-position
-                       (* projection (vari:vec4 coord 1))))
-               (vari:emit-vertex))
-             (vari:end-primitive))))))
-   t :points))
+   `((values
+      (* projection (vari:vec4 position 1))))))
 
 (declaim (type varjo.internals:fragment-stage *fragment-pass-0*))
 (defparameter *fragment-pass-0*
@@ -78,7 +45,6 @@
 (defparameter *pass-0*
   (varjo:rolling-translate
    (list *vertex-pass-0*
-         *geometry-pass-0*
          *fragment-pass-0*)))
 
 ;; Pass 1: Render the scene
@@ -87,48 +53,18 @@
 (defparameter *vertex-pass-1*
   (varjo:make-stage
    :vertex
-   '((position :vec3)  ; Position of a voxel in the world system.
-     (label    :uint)  ; Label of a voxel. Pass-through
-     (mask     :uint)) ; Connectivity mask. Used bits are 0 to 7. Pass-through
-   '()
-   '(:430)
-   ;; A simple pass-through shader
-   '((values (vari:vec4 position 1) label mask))
-   t :points))
-
-(declaim (type varjo.internals:geometry-stage *geometry-pass-1*))
-(defparameter *geometry-pass-1*
-  (varjo:make-stage
-   :geometry
-   '((label (:uint *))
-     (mask  (:uint *)))
-   '((nvoxels      :float) ; The same meaning as in the first pass
-     (c-projection :mat4)  ; Camera->screen projection
+   '((position     :vec3)  ; Position of a vertex in the world system.
+     (label        :uint)) ; Label of a voxel. Pass-through
+   '((c-projection :mat4)  ; Camera->screen projection
      (l-projection :mat4)) ; Light->shadow map projection
    '(:430)
-   '((declare (vari:output-primitive :kind :triangle-strip :max-vertices 26))
-     (with-vertices-bound vertices
-       (let ((connectivity (aref mask 0)))
-         (dotimes (plane 6)
-           (unless (zerop (logand connectivity (vari.cl::<< 1 plane)))
-             (dotimes (vertex-idx 4)
-               (let ((coord (transform-coords
-                             (vari:swizzle (vari:gl-position (aref vari:gl-in 0)) :xyz)
-                             (aref (aref vertices plane) vertex-idx)
-                             nvoxels)))
-                 (setf vari:gl-position
-                       (* c-projection (vari:vec4 coord 1)))
-                 ;; This shader is much like the shader in the
-                 ;; first pass, only now it also emits coordinates
-                 ;; of a vertex in the world space
-                 (vari:emit-data
-                  (values coord
-                          (:flat (aref label 0))
-                          ;; + Also projection of this vertex onto the shadow map.
-                          (* l-projection (vari:vec4 coord 1)))))
-               (vari:emit-vertex))
-             (vari:end-primitive))))))
-   t :points))
+   `((let ((pos4 (vari:vec4 position 1)))
+       (values
+        (* c-projection pos4)
+        position
+        (:flat label)
+        ;; + Also projection of this vertex onto the shadow map.
+        (* l-projection pos4))))))
 
 (declaim (type varjo.internals:fragment-stage *fragment-pass-1*))
 (defparameter *fragment-pass-1*
@@ -170,7 +106,6 @@
 (defparameter *pass-1*
   (varjo:rolling-translate
    (list *vertex-pass-1*
-         *geometry-pass-1*
          *fragment-pass-1*)))
 
 

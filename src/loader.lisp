@@ -1,14 +1,5 @@
 (in-package :voxview)
 
-(declaim (inline recopy-from-bit-array))
-(sera:-> recopy-from-bit-array ((simple-array bit (* * *)))
-         (values (simple-array (unsigned-byte 32) (* * *)) &optional))
-(defun recopy-from-bit-array (array)
-  (let ((%array (make-array (array-dimensions array)
-                            :element-type '(unsigned-byte 32))))
-    (map-into (flatten %array) #'identity (flatten array))
-    %array))
-
 (define-condition loader-error (error)
   ()
   (:documentation "Generic loader error. Not to be instantiated."))
@@ -45,11 +36,6 @@
               (content-error-dimensions c)
               (content-error-type       c)))))
 
-(sera:defconstructor model
-  (connectivity  connectivity)
-  (max-dimension alex:positive-fixnum)
-  (in-color-p    boolean))
-
 (deftype data-loader ()
   '(sera:-> (pathname)
     (values model &optional)))
@@ -70,15 +56,7 @@
       (error 'content-error
              :dimensions (array-dimensions model)
              :type (array-element-type model)))
-    (model
-     (compute-connectivity
-      ;; Convert to (UNSIGNED-BYTE 32) since COMPUTE-CONNECTIVITY
-      ;; works only with arrays of that element type.
-      (if (eq (array-element-type model) 'bit)
-          (recopy-from-bit-array model)
-          model))
-     (apply #'max (array-dimensions model))
-     (not (eq (array-element-type model) 'bit)))))
+    (compute-model model)))
 
 ;; A list of all supported formats and loaders
 (declaim (type list *loaders*))

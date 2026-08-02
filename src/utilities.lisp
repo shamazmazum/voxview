@@ -33,15 +33,15 @@ when the latter tracks the first.")
   ;; Light settings
   (show-light-p nil :type boolean)
 
-  ;; Scene parameters
-  (nvoxels 0 :type fixnum))
+  ;; How many elements to render?
+  (nelements 0 :type (unsigned-byte 32)))
 
 (sera:defconstructor gl-state
   ;; Common resources
   (vao         fixnum)
   (posbuffer   fixnum)
   (labelbuffer fixnum)
-  (connbuffer  fixnum)
+  (indbuffer   fixnum)
   (palbuffer   fixnum)
   ;; Pass 0: A shadow map
   (pass-0      fixnum)

@@ -7,7 +7,7 @@
     :pathname "library"
     :components ((:file "package")
                  (:file "do-indices")
-                 (:file "connectivity")
+                 (:file "model")
                  (:file "list-zipper"))
     :depends-on (:alexandria
                  :serapeum
@@ -40,7 +40,6 @@
     :components ((:file "package")
                  (:file "utilities")
                  (:file "loader")
-                 (:file "voxel")
                  (:file "shaders")
                  (:file "render")
                  (:file "application"))

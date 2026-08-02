@@ -37,36 +37,26 @@
   (lambda (model)
     (gtk4:gl-area-make-current area)
 
-    (let ((gl-state (funcall state-getter))
-          (connectivity (model-connectivity model)))
-      ;; Fill voxel positions buffer
+    (setf (scene-nelements scene) (length (model-indices model)))
+
+    (let ((gl-state (funcall state-getter)))
+      ;; Fill vertex positions buffer
       (gl:bind-buffer :array-buffer (gl-state-posbuffer gl-state))
-      (fast-upload-buffer (connectivity-points connectivity) 4)
+      (fast-upload-buffer (model-points model) 4)
 
       ;; Fill voxel label buffer
       (gl:bind-buffer :array-buffer (gl-state-labelbuffer gl-state))
-      (fast-upload-buffer (connectivity-labelz connectivity) 4)
+      (fast-upload-buffer (model-labels model) 4)
 
-      ;; Fill connectivity data
-      (gl:bind-buffer :array-buffer (gl-state-connbuffer gl-state))
-      (fast-upload-buffer (connectivity-masks connectivity) 1)
-
-      ;; Set number of voxels
-      (setf (scene-nvoxels scene) (length (connectivity-masks connectivity)))
-
-      ;; Set model dimensions
-      (flet ((%go (program)
-               (gl:use-program program)
-               (gl:uniformf (gl:get-uniform-location program "NVOXELS")
-                            (model-max-dimension model))))
-        (%go (gl-state-pass-0 gl-state))
-        (%go (gl-state-pass-1 gl-state)))
+      ;; Fill indices of the vertices
+      (gl:bind-buffer :element-array-buffer (gl-state-indbuffer gl-state))
+      (fast-upload-buffer (model-indices model) 4 :target :element-array-buffer)
 
       ;; Do we need to draw in color?
       (let ((program (gl-state-pass-1 gl-state)))
         (gl:use-program program)
         (gl:uniformi (gl:get-uniform-location program "USE_COLOR_P")
-                     (if (model-in-color-p model) 1 0))))
+                     (if (not (zerop (length (model-labels model)))) 1 0))))
     (values)))
 
 (defun upload-new-palette (palbuffer)
@@ -95,10 +85,10 @@
            (create-program
             *light-source-shaders*))         ; Light source rendering program
           (vao (gl:gen-vertex-array))        ; Vertex array object for a model
-          (posbuffer   (gl:gen-buffer))      ; Voxel positions
+          (posbuffer   (gl:gen-buffer))      ; Position of the vertices
           (labelbuffer (gl:gen-buffer))      ; Voxel label
           (palbuffer   (gl:gen-buffer))      ; Palette colors
-          (connbuffer  (gl:gen-buffer))      ; Connectivity information
+          (indbuffer   (gl:gen-buffer))      ; Indices into position array
           (palette (gl:gen-texture))         ; Palette texture
           (texture (gl:gen-texture))         ; Model texture
           (framebuffer (gl:gen-framebuffer)) ; Shadow framebuffer
@@ -141,7 +131,7 @@
       (gl:bind-framebuffer :framebuffer 0)
 
       (funcall setter
-               (gl-state vao posbuffer labelbuffer connbuffer palbuffer
+               (gl-state vao posbuffer labelbuffer indbuffer palbuffer
                          pass-0 framebuffer shadowmap
                          pass-1 texture palette ls-program)))
     (values)))
@@ -156,7 +146,7 @@
                                 (gl-state-palette gl-state)
                                 (gl-state-shadowmap gl-state)))
       (gl:delete-framebuffer (gl-state-framebuffer gl-state))
-      (gl:delete-buffers (list (gl-state-connbuffer  gl-state)
+      (gl:delete-buffers (list (gl-state-indbuffer   gl-state)
                                (gl-state-labelbuffer gl-state)
                                (gl-state-posbuffer   gl-state)
                                (gl-state-palbuffer   gl-state)))
@@ -170,19 +160,15 @@
   (gl:bind-vertex-array (gl-state-vao gl-state))
   (gl:enable-vertex-attrib-array 0)
   (gl:bind-buffer :array-buffer (gl-state-posbuffer gl-state))
-  (gl:vertex-attrib-pointer 0 3 :unsigned-int nil 0 0)
+  (gl:bind-buffer :element-array-buffer (gl-state-indbuffer gl-state))
+  (gl:vertex-attrib-pointer 0 3 :float nil 0 0)
 
   (gl:enable-vertex-attrib-array 1)
   (gl:bind-buffer :array-buffer (gl-state-labelbuffer gl-state))
   (gl:vertex-attrib-ipointer 1 1 :unsigned-int 0 0)
 
-  (gl:enable-vertex-attrib-array 2)
-  (gl:bind-buffer :array-buffer (gl-state-connbuffer gl-state))
-  (gl:vertex-attrib-ipointer 2 1 :unsigned-byte 0 0)
+  (%gl:draw-elements :triangles (scene-nelements scene) :unsigned-int 0)
 
-  (gl:draw-arrays :points 0 (scene-nvoxels scene))
-
-  (gl:disable-vertex-attrib-array 2)
   (gl:disable-vertex-attrib-array 1)
   (gl:disable-vertex-attrib-array 0))
   
@@ -195,7 +181,7 @@
   (lambda (area context)
     (declare (ignore context))
     (cond
-      ((zerop (scene-nvoxels scene)) nil)
+      ((zerop (scene-nelements scene)) nil)
       (t
        (let ((gl-state (funcall state-getter))
              ;; GTK reassigns the framebuffer almost each frame. This is really stupid

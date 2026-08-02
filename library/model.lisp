@@ -52,15 +52,15 @@
                  (emit! (zerop (safe-aref array (1- i) (id j) (id k)))
                         0 1 2 3)    ; z = -1
                  (emit! (zerop (safe-aref array (1+ i) (id j) (id k)))
-                        4 5 6 7)    ; z = +1
+                        4 6 5 7)    ; z = +1
                  (emit! (zerop (safe-aref array (id i) (1- j) (id k)))
-                        5 4 1 0)    ; y = -1
+                        5 1 4 0)    ; y = -1
                  (emit! (zerop (safe-aref array (id i) (1+ j) (id k)))
-                        7 3 6 2)    ; y = +1
+                        7 6 3 2)    ; y = +1
                  (emit! (zerop (safe-aref array (id i) (id j) (1- k)))
-                        4 6 0 2)    ; x = -1
+                        4 0 6 2)    ; x = -1
                  (emit! (zerop (safe-aref array (id i) (id j) (1+ k)))
-                        5 1 7 3)))) ; x = +1
+                        5 7 1 3)))) ; x = +1
           (not (zerop emitted)))))))
 
 (serapeum:-> emit-voxel-points!
