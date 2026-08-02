@@ -132,21 +132,24 @@ dimensions of the screen."
     shader))
 
 (defun create-program (shaders)
-  (let* ((program (gl:create-program))
-         (what (if (= (length shaders) 2)
-                   '(:vertex-shader :fragment-shader)
-                   '(:vertex-shader :geometry-shader :fragment-shader)))
-         (gl-shaders (mapcar #'create-shader what shaders)))
-    (mapc (lambda (shader) (gl:attach-shader program shader)) gl-shaders)
-    (gl:link-program program)
-    (mapc (lambda (shader) (gl:detach-shader program shader) (gl:delete-shader shader))
-          gl-shaders)
+  (destructuring-bind (vertex fragment)
+      shaders
+    (let ((program   (gl:create-program))
+          (svertex   (create-shader :vertex-shader   vertex))
+          (sfragment (create-shader :fragment-shader fragment)))
+      (gl:attach-shader program svertex)
+      (gl:attach-shader program sfragment)
+      (gl:link-program  program)
+      (gl:detach-shader program svertex)
+      (gl:detach-shader program sfragment)
+      (gl:delete-shader svertex)
+      (gl:delete-shader sfragment)
 
-    (let ((status (gl:get-program program :link-status)))
-      (unless status
-        (error "Program linkage failure: ~a"
-               (gl:get-program-info-log program))))
-    program))
+      (let ((status (gl:get-program program :link-status)))
+        (unless status
+          (error "Program linkage failure: ~a"
+                 (gl:get-program-info-log program))))
+      program)))
 
 (defun set-mat4-uniform (program uniform matrix)
   (gl:uniform-matrix
