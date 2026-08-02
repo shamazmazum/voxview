@@ -187,6 +187,7 @@
              (framebuffer (gl:get-integer :framebuffer-binding)))
          (gl:enable :cull-face)
          ;; Pass 0: Render shadows
+         (gl:cull-face :front)
          (gl:bind-framebuffer :framebuffer (gl-state-framebuffer gl-state))
          (gl:viewport 0 0 +shadow-width+ +shadow-height+)
          (gl:clear :depth-buffer-bit)
@@ -200,6 +201,7 @@
          (render-scene gl-state scene)
 
          ;; Pass 1: Render the scene from the viewer's perspective
+         (gl:cull-face :back)
          (gl:bind-framebuffer :framebuffer framebuffer)
          (with-screen-size (width height) area
             (gl:viewport 0 0 width height))
