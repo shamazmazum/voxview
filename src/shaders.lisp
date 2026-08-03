@@ -142,7 +142,6 @@
    '((cp-distance :float))
    '()
    '(:430)
-   ;; The threshold distance is not zero not to cut the caps
    `((when (< cp-distance 0)
        (vari:discard))
      (vari:vec4 (vari:vec3 0.5) 1))))
