@@ -1,10 +1,35 @@
 (in-package :voxview)
 
-(varjo:define-vari-function illumination ((vector :vec4) (sampler :sampler-2d))
+(varjo:define-vari-function calculate-color ((light-position  :vec3)
+                                             (coord           :vec3)
+                                             (texture-sampler :sampler-3d)
+                                             (illumination    :float))
+  (let* ((r (- light-position coord))
+         ;; What a naming! D-FDX!
+         (normal (vari:normalize
+                  (vari:cross (vari:d-fdx coord)
+                              (vari:d-fdy coord))))
+         (cosphi (/ (vari:dot r normal) (vari:length r)))
+         (texture-coord (/ (1+ coord) 2))
+         (texture-color (vari:swizzle (vari:texture texture-sampler texture-coord) :r)))
+    (+ (* 0.3
+          illumination                             ; Determines if we are illuminated
+          (vari:clamp cosphi 0 1))                 ; Add diffuse light
+       (* 0.7 texture-color))))                    ; Ambient light
+
+(varjo:define-vari-function palette-color ((label :uint) (sampler :sampler-buffer))
+  (vari:swizzle
+   (vari:texel-fetch
+    sampler (glsl-symbols.operators:%
+             (vari:int label)
+             #.+palette-color-number+))
+   :rgb))
+
+(varjo:define-vari-function illumination ((coord-light-proj :vec4) (sampler :sampler-2d))
   (let* ((step (/ 1.0 (vari:texture-size sampler 0)))
          (illumination 0.0)
-         (%normalized (/ (vari:swizzle vector :xyz)
-                         (vari:swizzle vector :w)))
+         (%normalized (/ (vari:swizzle coord-light-proj :xyz)
+                         (vari:swizzle coord-light-proj :w)))
          (normalized (/ (1+ %normalized) 2))
          (current-depth (vari:swizzle normalized :z))
          (shadowmap-coords (vari:swizzle normalized :xy)))
@@ -91,28 +116,14 @@
    '(:430)
    `((when (and use-cp-p (< cp-distance 0))
        (vari:discard))
-     (let* ((r (- light-position coord))
-            ;; What a naming! D-FDX!
-            (normal (vari:normalize
-                     (vari:cross (vari:d-fdx coord)
-                                 (vari:d-fdy coord))))
-            (cosphi (/ (vari:dot r normal) (vari:length r)))
-            (texture-coord (/ (1+ coord) 2))
-            (texture-color (vari:swizzle (vari:texture texture-sampler texture-coord) :r))
-            (palette-color (if use-color-p
-                               (vari:swizzle
-                                (vari:texel-fetch
-                                 palette-sampler
-                                 (glsl-symbols.operators:% (vari:int label)
-                                                           ,+palette-color-number+))
-                                :rgb)
-                               (vari:vec3 1))))
+     (let ((palette-color (if use-color-p
+                              (palette-color label palette-sampler)
+                              (vari:vec3 1))))
        (vari:vec4
         (* palette-color
-           (+ (* 0.3
-                 (illumination light-proj shadow-sampler) ; Determine if we are illuminated
-                 (vari:clamp cosphi 0 1))                 ; Add diffuse light
-              (* 0.7 texture-color)))                     ; Ambient light
+           (calculate-color
+            light-position coord texture-sampler
+            (illumination light-proj shadow-sampler)))
         1)))))
 
 (defparameter *pass-1*
@@ -198,21 +209,12 @@
      (texture-sampler :sampler-3d)
      (shadow-sampler  :sampler-2d))
    '(:430)
-   `((let* ((r (- light-position coord))
-            ;; What a naming! D-FDX!
-            (normal (vari:normalize
-                     (vari:cross (vari:d-fdx coord)
-                                 (vari:d-fdy coord))))
-            (cosphi (/ (vari:dot r normal) (vari:length r)))
-            (texture-coord (/ (1+ coord) 2))
-            (texture-color (vari:swizzle (vari:texture texture-sampler texture-coord) :r)))
-       (vari:vec4
-        (vari:vec3
-         (+ (* 0.3
-               (illumination light-proj shadow-sampler) ; Determine if we are illuminated
-               (vari:clamp cosphi 0 1))                 ; Add diffuse light
-            (* 0.7 texture-color)))                     ; Ambient light
-        1)))))
+   `((vari:vec4
+      (vari:vec3
+       (calculate-color
+        light-position coord texture-sampler
+        (illumination light-proj shadow-sampler)))
+      1))))
 
 (defparameter *plane-shaders*
   (varjo:rolling-translate
