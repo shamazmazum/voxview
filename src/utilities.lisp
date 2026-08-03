@@ -64,6 +64,14 @@ when the latter tracks the first.")
   ;; Light source rendering
   (ls-program  fixnum))
 
+(sera:-> random-vec3 ()
+         (values rtg-math.types:vec3 &optional))
+(defun random-vec3 ()
+  (rtg-math.vector3:make
+   (random 1.0)
+   (random 1.0)
+   (random 1.0)))
+
 (sera:-> object-position (single-float single-float single-float)
          (values rtg-math.types:vec3 &optional))
 (defun object-position (r ϕ ψ)

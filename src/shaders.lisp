@@ -157,24 +157,62 @@
   (varjo:make-stage
    :vertex
    '()
-   '()
+   '((c-projection :mat4)  ; Camera->screen projection
+     (l-projection :mat4)  ; Light->shadow map projection
+     (v1           :vec3)  ; Just any random vector 1
+     (v2           :vec3)  ; Just any random vector 2
+     (cp           :vec4)) ; Equation for the cutting plane
    '(:430)
    `((let* ((points (vector
-                     (vari:vec2 -1 -1)
-                     (vari:vec2 +1 -1)
-                     (vari:vec2 -1 +1)
-                     (vari:vec2 +1 +1)))
-            (point (aref points vari:gl-vertex-id)))
-       (vari:vec4 point 0 1)))))
+                     (vari:vec3 -2 -2 +1) ; Make it bigger than -1, +1 box
+                     (vari:vec3 +2 -2 +1)
+                     (vari:vec3 -2 +2 +1)
+                     (vari:vec3 +2 +2 +1)))
+            ;; Normal to the cutting plane
+            (n (vari:swizzle cp :xyz))
+            ;; Distance between the cutting plane and the origin
+            (d (- (vari:swizzle cp :w)))
+            ;; The first tangent vector
+            (t1 (vari:normalize (- v1 (* (vari:dot v1 n) n))))
+            ;; The second tangent vector. t1, t2 form the tangent space
+            (t2 (vari:normalize (- v2 (* (vari:dot v2 n) n) (* (vari:dot v2 t1) t1))))
+            ;; Transform planar (u, v, 1) coordinates into world (x, y, z) coords
+            (m (vari:mat3 t1 t2 (* n d)))
+            ;; Find a point on a cutting plane
+            (point (* m (aref points vari:gl-vertex-id)))
+            (point4 (vari:vec4 point 1)))
+       (values
+        (* c-projection point4)
+        ;; Position of a point in the world system
+        point
+        ;; + Also projection of this vertex onto the shadow map.
+        (* l-projection point4))))))
 
 (declaim (type varjo.internals:fragment-stage *fragment-plane*))
 (defparameter *fragment-plane*
   (varjo:make-stage
    :fragment
-   '()
-   '()
+   '((coord       :vec3)
+     (light-proj  :vec4))
+   '((light-position  :vec3)
+     (texture-sampler :sampler-3d)
+     (shadow-sampler  :sampler-2d))
    '(:430)
-   `((vari:vec4 (vari:vec3 0.7) 1))))
+   `((let* ((r (- light-position coord))
+            ;; What a naming! D-FDX!
+            (normal (vari:normalize
+                     (vari:cross (vari:d-fdx coord)
+                                 (vari:d-fdy coord))))
+            (cosphi (/ (vari:dot r normal) (vari:length r)))
+            (texture-coord (/ (1+ coord) 2))
+            (texture-color (vari:swizzle (vari:texture texture-sampler texture-coord) :r)))
+       (vari:vec4
+        (vari:vec3
+         (+ (* 0.3
+               (illumination light-proj shadow-sampler) ; Determine if we are illuminated
+               (vari:clamp cosphi 0 1))                 ; Add diffuse light
+            (* 0.7 texture-color)))                     ; Ambient light
+        1)))))
 
 (defparameter *plane-shaders*
   (varjo:rolling-translate

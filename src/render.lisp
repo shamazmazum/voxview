@@ -284,11 +284,47 @@
 
            ;; Render the cutting plane
            (gl:use-program (gl-state-cp-program gl-state))
+
+           ;; Camera projection
+           (set-mat4-uniform (gl-state-cp-program gl-state) "C_PROJECTION"
+                             (camera-projection-matrix area scene))
+
+           ;; Light projection
+           (set-mat4-uniform (gl-state-cp-program gl-state) "L_PROJECTION"
+                             (light-projection-matrix scene))
+
+           ;; Random vectors
+           (set-vec-uniform (gl-state-cp-program gl-state) "V1"
+                            (random-vec3))
+           (set-vec-uniform (gl-state-cp-program gl-state) "V2"
+                            (random-vec3))
+
+           ;; Set cutting plane
+           (set-vec-uniform (gl-state-cp-program gl-state) "CP"
+                            (cutting-plane scene))
+
+           ;; Light position
+           (set-vec-uniform (gl-state-cp-program gl-state) "LIGHT_POSITION"
+                            (light-position-vector scene))
+
+           ;; Texture sampler
+           (gl:uniformi
+            (gl:get-uniform-location (gl-state-cp-program gl-state) "TEXTURE_SAMPLER") 0)
+
+           ;; Activate textures
+           (gl:active-texture :texture0)
+           (gl:bind-texture :texture-3d (gl-state-texture gl-state))
+           (gl:active-texture :texture1)
+           (gl:bind-texture :texture-2d (gl-state-shadowmap gl-state))
+
+           ;; Shadowmap sampler
+           (gl:uniformi
+            (gl:get-uniform-location (gl-state-cp-program gl-state) "SHADOW_SAMPLER") 1)
+           
            (gl:stencil-func :notequal 0 #xff)
            (gl:stencil-op :keep :keep :keep)
 
-           ;; TODO: Remove this line in the future
-           (gl:disable :depth-test :cull-face)
+           (gl:disable :cull-face)
            (gl:draw-arrays :triangle-strip 0 4)
 
            ;; Disable stencil tests
@@ -297,8 +333,6 @@
          (when (scene-show-light-p scene)
            ;; Render light source
            (gl:disable :cull-face)
-           ;; TODO: Remove this line in the future
-           (gl:enable :depth-test)
 
            (gl:use-program (gl-state-ls-program gl-state))
 
