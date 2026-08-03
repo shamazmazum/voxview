@@ -336,7 +336,6 @@
            (gl:disable :cull-face)
 
            (gl:use-program (gl-state-ls-program gl-state))
-           (gl:use-program (gl-state-cp-program gl-state))
            (set-uniform area scene (gl-state-ls-program gl-state) :c-projection)
            (set-uniform area scene (gl-state-ls-program gl-state) :l-position)
 
