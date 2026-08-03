@@ -183,16 +183,31 @@ dimensions of the screen."
                  (gl:get-program-info-log program))))
       program)))
 
-(defun set-bool-uniform (program uniform value)
+(sera:-> set-int-uniform (t string integer)
+         (values &optional))
+(defun set-int-uniform (program uniform value)
   (gl:uniformi
    (gl:get-uniform-location program uniform)
+   value)
+  (values))
+
+(sera:-> set-bool-uniform (t string boolean)
+         (values &optional))
+(defun set-bool-uniform (program uniform value)
+  (set-int-uniform
+   program uniform
    (if value 1 0)))
 
+(sera:-> set-mat4-uniform (t string rtg-math.types:mat4)
+         (values &optional))
 (defun set-mat4-uniform (program uniform matrix)
   (gl:uniform-matrix
    (gl:get-uniform-location program uniform)
-   4 (vector matrix) nil))
+   4 (vector matrix) nil)
+  (values))
 
+(sera:-> set-vec-uniform (t string (simple-array single-float (*)))
+         (values &optional))
 (defun set-vec-uniform (program uniform vector)
   (let ((location (gl:get-uniform-location program uniform)))
     (ecase (length vector)
@@ -209,7 +224,8 @@ dimensions of the screen."
                       (aref vector 0)
                       (aref vector 1)
                       (aref vector 2)
-                      (aref vector 3))))))
+                      (aref vector 3)))))
+  (values))
 
 (declaim (inline flatten))
 (defun flatten (array)

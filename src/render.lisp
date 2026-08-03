@@ -176,6 +176,58 @@
   (gl:disable-vertex-attrib-array 1)
   (gl:disable-vertex-attrib-array 0))
 
+(deftype uniform ()
+  `(member :cp :use-cp-p
+           :l-projection
+           :c-projection
+           :l-position
+           :texture-sampler
+           :shadowmap-sampler
+           :palette-sampler))
+
+(sera:-> set-uniform (gir::object-instance scene t uniform)
+         (values &optional))
+(defun set-uniform (area scene program what)
+  (declare (optimize (speed 3)))
+  (case what
+    (:cp
+     ;; Set cutting plane
+     (set-vec-uniform
+      program "CP"
+      (cutting-plane scene)))
+    (:use-cp-p
+     ;; Do we use the cutting plane?
+     (set-bool-uniform
+      program "USE_CP_P"
+      (scene-plane-p scene)))
+    (:l-projection
+     ;; Light projection
+     (set-mat4-uniform
+      program "L_PROJECTION"
+      (light-projection-matrix scene)))
+    (:c-projection
+     ;; Camera projection
+     (set-mat4-uniform
+      program "C_PROJECTION"
+      (camera-projection-matrix area scene)))
+    (:l-position
+     ;; Light position
+     (set-vec-uniform
+      program "LIGHT_POSITION"
+      (light-position-vector scene)))
+    (:texture-sampler
+     ;; Texture sampler
+     (set-int-uniform
+      program "TEXTURE_SAMPLER" 0))
+    (:shadowmap-sampler
+     ;; Shadowmap sampler
+     (set-int-uniform
+      program "SHADOW_SAMPLER" 1))
+    (:palette-sampler
+     ;; Palette sampler
+     (set-int-uniform
+      program "PALETTE_SAMPLER" 2))))
+
 (sera:-> make-draw-handler (getter scene)
          (values (sera:-> (gir::object-instance gir::object-instance)
                           (values boolean &optional))
@@ -197,15 +249,9 @@
          (gl:clear :depth-buffer-bit)
          (gl:use-program (gl-state-pass-0 gl-state))
 
-         ;; Set light space projection matrix
-         (set-mat4-uniform (gl-state-pass-0 gl-state) "PROJECTION"
-                           (light-projection-matrix scene))
-
-         ;; Set cutting plane
-         (set-vec-uniform (gl-state-pass-0 gl-state) "CP"
-                          (cutting-plane scene))
-         (set-bool-uniform (gl-state-pass-0 gl-state) "USE_CP_P"
-                           (scene-plane-p scene))
+         (set-uniform area scene (gl-state-pass-0 gl-state) :l-projection)
+         (set-uniform area scene (gl-state-pass-0 gl-state) :cp)
+         (set-uniform area scene (gl-state-pass-0 gl-state) :use-cp-p)
 
          ;; Render pass 0
          (render-scene gl-state scene)
@@ -219,35 +265,14 @@
 
          ;; Set uniforms
          (gl:use-program (gl-state-pass-1 gl-state))
-
-         ;; Camera projection
-         (set-mat4-uniform (gl-state-pass-1 gl-state) "C_PROJECTION"
-                           (camera-projection-matrix area scene))
-
-         ;; Light projection
-         (set-mat4-uniform (gl-state-pass-1 gl-state) "L_PROJECTION"
-                           (light-projection-matrix scene))
-
-         ;; Set cutting plane
-         (set-vec-uniform (gl-state-pass-1 gl-state) "CP"
-                          (cutting-plane scene))
-         (set-bool-uniform (gl-state-pass-1 gl-state) "USE_CP_P"
-                           (scene-plane-p scene))
-
-         ;; Light position
-         (set-vec-uniform (gl-state-pass-1 gl-state) "LIGHT_POSITION"
-                          (light-position-vector scene))
-
-         ;; Texture sampler
-         (gl:uniformi
-          (gl:get-uniform-location (gl-state-pass-1 gl-state) "TEXTURE_SAMPLER") 0)
-
-         ;; Shadowmap sampler
-         (gl:uniformi
-          (gl:get-uniform-location (gl-state-pass-1 gl-state) "SHADOW_SAMPLER") 1)
-
-         (gl:uniformi
-          (gl:get-uniform-location (gl-state-pass-1 gl-state) "PALETTE_SAMPLER") 2)
+         (set-uniform area scene (gl-state-pass-1 gl-state) :c-projection)
+         (set-uniform area scene (gl-state-pass-1 gl-state) :l-projection)
+         (set-uniform area scene (gl-state-pass-1 gl-state) :cp)
+         (set-uniform area scene (gl-state-pass-1 gl-state) :use-cp-p)
+         (set-uniform area scene (gl-state-pass-1 gl-state) :l-position)
+         (set-uniform area scene (gl-state-pass-1 gl-state) :texture-sampler)
+         (set-uniform area scene (gl-state-pass-1 gl-state) :shadowmap-sampler)
+         (set-uniform area scene (gl-state-pass-1 gl-state) :palette-sampler)
 
          ;; Activate textures
          (gl:active-texture :texture0)
@@ -264,14 +289,8 @@
          (when (scene-plane-p scene)
            ;; Set uniforms
            (gl:use-program (gl-state-pass-2 gl-state))
-
-           ;; Camera projection
-           (set-mat4-uniform (gl-state-pass-2 gl-state) "PROJECTION"
-                             (camera-projection-matrix area scene))
-
-           ;; Set cutting plane
-           (set-vec-uniform (gl-state-pass-2 gl-state) "CP"
-                            (cutting-plane scene))
+           (set-uniform area scene (gl-state-pass-2 gl-state) :c-projection)
+           (set-uniform area scene (gl-state-pass-2 gl-state) :cp)
 
            ;; Fill the stencil buffer. It is non-zero only when back
            ;; faces are visible
@@ -284,14 +303,12 @@
 
            ;; Render the cutting plane
            (gl:use-program (gl-state-cp-program gl-state))
-
-           ;; Camera projection
-           (set-mat4-uniform (gl-state-cp-program gl-state) "C_PROJECTION"
-                             (camera-projection-matrix area scene))
-
-           ;; Light projection
-           (set-mat4-uniform (gl-state-cp-program gl-state) "L_PROJECTION"
-                             (light-projection-matrix scene))
+           (set-uniform area scene (gl-state-cp-program gl-state) :c-projection)
+           (set-uniform area scene (gl-state-cp-program gl-state) :l-projection)
+           (set-uniform area scene (gl-state-cp-program gl-state) :cp)
+           (set-uniform area scene (gl-state-cp-program gl-state) :l-position)
+           (set-uniform area scene (gl-state-cp-program gl-state) :texture-sampler)
+           (set-uniform area scene (gl-state-cp-program gl-state) :shadowmap-sampler)
 
            ;; Random vectors
            (set-vec-uniform (gl-state-cp-program gl-state) "V1"
@@ -299,27 +316,11 @@
            (set-vec-uniform (gl-state-cp-program gl-state) "V2"
                             (random-vec3))
 
-           ;; Set cutting plane
-           (set-vec-uniform (gl-state-cp-program gl-state) "CP"
-                            (cutting-plane scene))
-
-           ;; Light position
-           (set-vec-uniform (gl-state-cp-program gl-state) "LIGHT_POSITION"
-                            (light-position-vector scene))
-
-           ;; Texture sampler
-           (gl:uniformi
-            (gl:get-uniform-location (gl-state-cp-program gl-state) "TEXTURE_SAMPLER") 0)
-
            ;; Activate textures
            (gl:active-texture :texture0)
            (gl:bind-texture :texture-3d (gl-state-texture gl-state))
            (gl:active-texture :texture1)
            (gl:bind-texture :texture-2d (gl-state-shadowmap gl-state))
-
-           ;; Shadowmap sampler
-           (gl:uniformi
-            (gl:get-uniform-location (gl-state-cp-program gl-state) "SHADOW_SAMPLER") 1)
            
            (gl:stencil-func :notequal 0 #xff)
            (gl:stencil-op :keep :keep :keep)
@@ -335,14 +336,9 @@
            (gl:disable :cull-face)
 
            (gl:use-program (gl-state-ls-program gl-state))
-
-           ;; Set light position
-           (set-vec-uniform (gl-state-ls-program gl-state) "LIGHT_POSITION"
-                            (light-position-vector scene))
-
-           ;; Set projection matrix
-           (set-mat4-uniform (gl-state-ls-program gl-state) "PROJECTION"
-                             (camera-projection-matrix area scene))
+           (gl:use-program (gl-state-cp-program gl-state))
+           (set-uniform area scene (gl-state-ls-program gl-state) :c-projection)
+           (set-uniform area scene (gl-state-ls-program gl-state) :l-position)
 
            ;; Render a triangle
            (gl:draw-arrays :triangles 0 3)))

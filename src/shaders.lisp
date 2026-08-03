@@ -26,14 +26,14 @@
 (defparameter *vertex-pass-0*
   (varjo:make-stage
    :vertex
-   '((position   :vec3)  ; Position of a vertex in the world system.
-     (label      :uint)) ; Label of a voxel. Not used in this stage
-   '((projection :mat4)  ; On screen projection operator
-     (cp         :vec4)) ; Cutting plane
+   '((position   :vec3)   ; Position of a vertex in the world system.
+     (label      :uint))  ; Label of a voxel. Not used in this stage
+   '((l-projection :mat4) ; On screen projection operator
+     (cp         :vec4))  ; Cutting plane
    '(:430)
    `((let ((pos4 (vari:vec4 position 1)))
        (values
-        (* projection pos4)
+        (* l-projection pos4)
         (vari:dot pos4 cp))))))
 
 (declaim (type varjo.internals:fragment-stage *fragment-pass-0*))
@@ -127,12 +127,12 @@
   (varjo:make-stage
    :vertex
    '((position   :vec3)
-     (label      :uint)) ; Not used
-   '((projection :mat4)  ; On screen projection operator
-     (cp         :vec4)) ; Cutting plane
+     (label      :uint))  ; Not used
+   '((c-projection :mat4) ; On screen projection operator
+     (cp         :vec4))  ; Cutting plane
    '(:430)
    `((let ((pos4 (vari:vec4 position 1)))
-       (values (* projection pos4)
+       (values (* c-projection pos4)
                (vari:dot cp pos4))))))
 
 (declaim (type varjo.internals:fragment-stage *fragment-pass-2*))
@@ -226,7 +226,7 @@
    :vertex
    '() ; No inputs
    '((light-position :vec3)
-     (projection     :mat4))
+     (c-projection   :mat4))
    '(:430)
    '((let* ((x (vari:swizzle light-position :x))
             (y (vari:swizzle light-position :y))
@@ -238,7 +238,7 @@
                           (* scale (vari:normalize v2))
                           light-position))
             (points (vector (vari:vec3 -1 -1 1) (vari:vec3 1 -1 1) (vari:vec3 0 1 1))))
-       (* projection
+       (* c-projection
           (vari:vec4 (* m (aref points vari:gl-vertex-id)) 1))))))
 
 (declaim (type varjo.internals:fragment-stage *fragment-light-source*))
