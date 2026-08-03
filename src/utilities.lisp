@@ -57,8 +57,10 @@ when the latter tracks the first.")
   (pass-1      fixnum)
   (texture     fixnum)
   (palette     fixnum)
-  ;; Pass 2: rendering the caps
+  ;; Pass 2: Preparation for cutting plane rendering
   (pass-2      fixnum)
+  ;; Cutting plane rendering
+  (cp-program  fixnum)
   ;; Light source rendering
   (ls-program  fixnum))
 

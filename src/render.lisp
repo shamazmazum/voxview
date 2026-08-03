@@ -81,7 +81,10 @@
     ;; Create resources
     (let ((pass-0 (create-program *pass-0*)) ; Shadowmap program
           (pass-1 (create-program *pass-1*)) ; Rendering program
-          (pass-2 (create-program *pass-2*)) ; Drawing the caps
+          (pass-2 (create-program *pass-2*)) ; Preparation for cutting plane rendering
+          (cp-program
+            (create-program
+             *plane-shaders*))               ; Cutting plane rendering
           (ls-program
            (create-program
             *light-source-shaders*))         ; Light source rendering program
@@ -95,8 +98,6 @@
           (framebuffer (gl:gen-framebuffer)) ; Shadow framebuffer
           (shadowmap (gl:gen-texture)))      ; Shadowmap texture
 
-      ;; Enable depth test
-      (gl:enable :depth-test)
       (gl:clear-color 0.0 0.0 0.0 0.0)
 
       ;; Upload model texture
@@ -134,7 +135,7 @@
       (funcall setter
                (gl-state vao posbuffer labelbuffer indbuffer palbuffer
                          pass-0 framebuffer shadowmap
-                         pass-1 texture palette pass-2 ls-program)))
+                         pass-1 texture palette pass-2 cp-program ls-program)))
     (values)))
 
 (sera:-> make-unrealize-handler (getter)
@@ -155,6 +156,7 @@
       (gl:delete-program (gl-state-pass-0 gl-state))
       (gl:delete-program (gl-state-pass-1 gl-state))
       (gl:delete-program (gl-state-pass-2 gl-state))
+      (gl:delete-program (gl-state-cp-program gl-state))
       (gl:delete-program (gl-state-ls-program gl-state)))
     (values)))
 
@@ -187,7 +189,7 @@
        (let ((gl-state (funcall state-getter))
              ;; GTK reassigns the framebuffer almost each frame. This is really stupid
              (framebuffer (gl:get-integer :framebuffer-binding)))
-         (gl:enable :cull-face)
+         (gl:enable :cull-face :depth-test)
          ;; Pass 0: Render shadows
          (gl:cull-face :front)
          (gl:bind-framebuffer :framebuffer (gl-state-framebuffer gl-state))
@@ -271,12 +273,32 @@
            (set-vec-uniform (gl-state-pass-2 gl-state) "CP"
                             (cutting-plane scene))
 
+           ;; Fill the stencil buffer. It is non-zero only when back
+           ;; faces are visible
            (gl:cull-face :front)
-           (render-scene gl-state scene))
+           (gl:enable :stencil-test)
+           (gl:clear :stencil-buffer-bit)
+           (gl:stencil-func :always 0 #xff)
+           (gl:stencil-op :keep :keep :incr)
+           (render-scene gl-state scene)
+
+           ;; Render the cutting plane
+           (gl:use-program (gl-state-cp-program gl-state))
+           (gl:stencil-func :notequal 0 #xff)
+           (gl:stencil-op :keep :keep :keep)
+
+           ;; TODO: Remove this line in the future
+           (gl:disable :depth-test :cull-face)
+           (gl:draw-arrays :triangle-strip 0 4)
+
+           ;; Disable stencil tests
+           (gl:disable :stencil-test))
 
          (when (scene-show-light-p scene)
            ;; Render light source
            (gl:disable :cull-face)
+           ;; TODO: Remove this line in the future
+           (gl:enable :depth-test)
 
            (gl:use-program (gl-state-ls-program gl-state))
 
@@ -315,7 +337,8 @@
          (values renderer &optional))
 (defun make-drawing-area (scene)
   (let ((area (gtk4:make-gl-area)))
-    (setf (gtk4:gl-area-has-depth-buffer-p area) t ; Enable depth buffer
+    (setf (gtk4:gl-area-has-depth-buffer-p   area) t ; Enable depth buffer
+          (gtk4:gl-area-has-stencil-buffer-p area) t ; Enable stencil buffer
           ;; (gtk4:gl-area-allowed-apis area) 1
           (maybe-gl-area-allowed-apis area) 1)     ; OpenGL Only
     (with-place (state-getter state-setter)

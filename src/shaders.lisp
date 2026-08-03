@@ -120,7 +120,7 @@
    (list *vertex-pass-1*
          *fragment-pass-1*)))
 
-;; Pass 2: Render the caps for cut geometry
+;; Pass 2: Prepare to render the slice
 ;; TODO: Lighting
 (declaim (type varjo.internals:vertex-stage *vertex-pass-2*))
 (defparameter *vertex-pass-2*
@@ -142,14 +142,44 @@
    '((cp-distance :float))
    '()
    '(:430)
+   ;; This shader has no output
    `((when (< cp-distance 0)
-       (vari:discard))
-     (vari:vec4 (vari:vec3 0.5) 1))))
+       (vari:discard)))))
 
 (defparameter *pass-2*
   (varjo:rolling-translate
    (list *vertex-pass-2*
          *fragment-pass-2*)))
+
+;; Render the cutting plane
+(declaim (type varjo.internals:vertex-stage *vertex-plane*))
+(defparameter *vertex-plane*
+  (varjo:make-stage
+   :vertex
+   '()
+   '()
+   '(:430)
+   `((let* ((points (vector
+                     (vari:vec2 -1 -1)
+                     (vari:vec2 +1 -1)
+                     (vari:vec2 -1 +1)
+                     (vari:vec2 +1 +1)))
+            (point (aref points vari:gl-vertex-id)))
+       (vari:vec4 point 0 1)))))
+
+(declaim (type varjo.internals:fragment-stage *fragment-plane*))
+(defparameter *fragment-plane*
+  (varjo:make-stage
+   :fragment
+   '()
+   '()
+   '(:430)
+   `((vari:vec4 (vari:vec3 0.7) 1))))
+
+(defparameter *plane-shaders*
+  (varjo:rolling-translate
+   (list *vertex-plane*
+         *fragment-plane*)))
 
 ;; Light source shader
 (declaim (type varjo.internals:vertex-stage *vertex-light-source*))
