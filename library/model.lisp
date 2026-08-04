@@ -38,52 +38,64 @@
      alex:non-negative-fixnum
      alex:non-negative-fixnum
      alex:non-negative-fixnum)
-    (values boolean &optional))
+    (values (unsigned-byte 8) &optional))
 (declaim (inline emit-voxel-faces!))
 (defun emit-voxel-faces! (emitter array i j k)
   (let ((value (aref array i j k)))
     (flet ((id (x) x)
-           (emit! (c i j k l)
-             (if c (progn (funcall emitter i j k l) 1) 0)))
+           (emit! (i j k l)
+             (funcall emitter i j k l)
+             (logior (ash 1 i)
+                     (ash 1 j)
+                     (ash 1 k)
+                     (ash 1 l))))
       (declare (inline id emit!))
-      (unless (zerop value)
-        (let ((emitted
-                (logior
-                 (emit! (zerop (safe-aref array (1- i) (id j) (id k)))
-                        0 1 2 3)    ; z = -1
-                 (emit! (zerop (safe-aref array (1+ i) (id j) (id k)))
-                        4 6 5 7)    ; z = +1
-                 (emit! (zerop (safe-aref array (id i) (1- j) (id k)))
-                        5 1 4 0)    ; y = -1
-                 (emit! (zerop (safe-aref array (id i) (1+ j) (id k)))
-                        7 6 3 2)    ; y = +1
-                 (emit! (zerop (safe-aref array (id i) (id j) (1- k)))
-                        4 0 6 2)    ; x = -1
-                 (emit! (zerop (safe-aref array (id i) (id j) (1+ k)))
-                        5 7 1 3)))) ; x = +1
-          (not (zerop emitted)))))))
+      (if (zerop value) 0
+          (logior
+           (if (zerop (safe-aref array (1- i) (id j) (id k)))
+               (emit! 0 1 2 3) 0)      ; z = -1
+           (if (zerop (safe-aref array (1+ i) (id j) (id k)))
+               (emit! 4 6 5 7) 0)      ; z = +1
+           (if (zerop (safe-aref array (id i) (1- j) (id k)))
+               (emit! 5 1 4 0) 0)      ; y = -1
+           (if (zerop (safe-aref array (id i) (1+ j) (id k)))
+               (emit! 7 6 3 2) 0)      ; y = +1
+           (if (zerop (safe-aref array (id i) (id j) (1- k)))
+               (emit! 4 0 6 2) 0)      ; x = -1
+           (if (zerop (safe-aref array (id i) (id j) (1+ k)))
+               (emit! 5 7 1 3) 0)))))) ; x = +1
 
 (serapeum:-> emit-voxel-points!
     ((sera:-> (single-float single-float single-float)
          (values &optional))
      alex:array-index alex:array-index
-     alex:array-index alex:array-index)
+     alex:array-index alex:array-index
+      (unsigned-byte 8))
     (values &optional))
 (declaim (inline emit-voxel-points!))
-(defun emit-voxel-points! (emitter dimension i j k)
-  (loop for (z y x) in +vertices+ do
-    (flet ((transform (position vertex)
-             (declare (type (member +1 -1) vertex)
-                      (type alex:array-index position))
-             (let ((position (float position))
-                   (vertex   (float vertex)))
-               (+ (/ (* position 2) dimension) -1
-                  (/ (1+ vertex) dimension)))))
-      (funcall emitter
-               (transform i z)
-               (transform j y)
-               (transform k x))))
+(defun emit-voxel-points! (emitter dimension i j k mask)
+  (loop for (z y x) in +vertices+
+        for idx from 0 by 1
+        unless (zerop (ldb (byte 1 idx) mask)) do
+          (flet ((transform (position vertex)
+                   (declare (type (member +1 -1) vertex)
+                            (type alex:array-index position))
+                   (let ((position (float position))
+                         (vertex   (float vertex)))
+                     (+ (/ (* position 2) dimension) -1
+                        (/ (1+ vertex) dimension)))))
+            (funcall emitter
+                     (transform i z)
+                     (transform j y)
+                     (transform k x))))
   (values))
+
+;; M is an mask of removed points
+(serapeum:-> corrected-index ((integer 0 7) (unsigned-byte 8))
+             (values (integer 0 7) &optional))
+(defun corrected-index (i m)
+  (declare (optimize (speed 3)))
+  (- i (logcount (logand (1- (ash 1 i)) m))))
 
 (sera:-> %compute-model ((or (simple-array (unsigned-byte 32) (* * *))
                              (simple-array bit                (* * *)))
@@ -118,35 +130,40 @@
            (emit-face (i j k l)
              (when (< (length indices) (+ nindices 6))
                (adjust-array indices (* (length indices) 2)))
-             (setf (aref indices (+ nindices 0))
-                   (+ npoints i)
-                   (aref indices (+ nindices 1))
-                   (+ npoints j)
-                   (aref indices (+ nindices 2))
-                   (+ npoints k)
-                   (aref indices (+ nindices 3))
-                   (+ npoints k)
-                   (aref indices (+ nindices 4))
-                   (+ npoints j)
-                   (aref indices (+ nindices 5))
-                   (+ npoints l))
+             (setf (aref indices (+ nindices 0)) i
+                   (aref indices (+ nindices 1)) j
+                   (aref indices (+ nindices 2)) k
+                   (aref indices (+ nindices 3)) k
+                   (aref indices (+ nindices 4)) j
+                   (aref indices (+ nindices 5)) l)
              (incf nindices 6)
              (values)))
       (declare (inline emit-point emit-label emit-face))
       (do-indices (array i j k)
-        ;; Faces should be emmited first
-        (let ((emitted (emit-voxel-faces! #'emit-face array i j k))
+        ;; Faces should be emmited first to determine number of
+        ;; removed vertices.
+        (let ((%nindices nindices)
+              (mask (emit-voxel-faces! #'emit-face array i j k))
               (value (aref array i j k)))
-          (when emitted
+          (unless (zerop mask)
             (when labelsp
               (multiple-value-bind (label foundp)
                   (gethash value label-table lbl)
                 (unless foundp
                   (setf (gethash value label-table) label)
                   (incf lbl))
-                (loop repeat 8 do
+                (loop repeat (logcount mask) do
                   (emit-label label))))
-            (emit-voxel-points! #'emit-point max-dimension i j k))))
+            ;; We need to reassign indices for the last face with
+            ;; respect to removed vertices (not all vertices of a
+            ;; voxel may be stored).
+            (loop for l from %nindices below nindices
+                  for index = (aref indices l) do
+                    (setf (aref indices l)
+                          (+ npoints (corrected-index index (logxor mask #xff)))))
+            (emit-voxel-points! #'emit-point max-dimension i j k mask))))
+      (assert (or (eq (array-element-type array) 'bit)
+                  (= npoints nlabels)))
       (model (subseq points  0 (* npoints 3))
              (subseq indices 0 nindices)
              (subseq labels  0 nlabels)))))
