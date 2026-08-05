@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.3 → 0.3.0
+
+* Enhancement: Add cutting plane. Now it is possible to see what's inside the
+  model.
+* Geometry is now calculated on CPU and geometry stage shader is removed.
+
 ## 0.2.2 → 0.2.3
 
 * Enhancement: Voxview now accepts arrays with `dtype='uint32'` in addition to

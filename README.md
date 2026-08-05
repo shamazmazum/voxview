@@ -2,9 +2,11 @@
 
 ## Intro
 
-This program visualizes three-dimensional arrays of bits by drawing a small cube
-on the boundary between 0 and 1 values in the array. This can be useful for
-visualizing various spatial data in a voxel form.
+This program visualizes three-dimensional voxel data.
+
+It accepts input in the form of numpy arrays (`.npy`) with `dtype == 'bool'` or
+`dtype == 'uint32'`. If an array has `uint32` elements voxview assigns its own
+random color for each non-zero value which appears in the array.
 
 ## Screenshots
 
@@ -16,7 +18,7 @@ visualizing various spatial data in a voxel form.
 
 Hardware: 
 
-* An OpenGL 4.3 compatible videocard
+* An OpenGL 4.3 compatible videocard (now I am not sure, maybe just 3.0 will do ;)
 
 Software: 
 
@@ -30,7 +32,7 @@ In this directory, run
 
 ~~~~
 $ qlot install
-$ qlot exec sbcl --dynamic-space-size 16gb
+$ qlot exec sbcl --dynamic-space-size 32gb
 ~~~~
 
 This will start SBCL REPL. In the REPL run
@@ -46,6 +48,7 @@ Install a produced binary to your binary directory if you wish.
 * Value noise texturing
 * Ambient and diffuse lights
 * Shadow map from a single point light source.
+* Cutting plane
 
 ## Tips
 
