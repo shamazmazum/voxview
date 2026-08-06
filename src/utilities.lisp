@@ -234,6 +234,24 @@ dimensions of the screen."
               :displaced-to array
               :displaced-index-offset 0))
 
+(serapeum:-> fast-upload-3d-texture ((simple-array single-float (* * *)) t t t)
+             (values &optional))
+(defun fast-upload-3d-texture (array internal-format format type)
+  (declare (optimize (speed 3)))
+  #-sbcl
+  (gl:tex-image-3d :texture-3d 0 internal-format
+                   (array-dimension array 0)
+                   (array-dimension array 1)
+                   (array-dimension array 2)
+                   0 format type (flatten array))
+  #+sbcl
+  (cffi:with-pointer-to-vector-data (ptr (sb-ext:array-storage-vector array))
+    (gl:tex-image-3d :texture-3d 0 internal-format
+                     (array-dimension array 0)
+                     (array-dimension array 1)
+                     (array-dimension array 2)
+                     0 format type ptr)))
+
 (defconstant +palette-color-number+ 64
   "NUmber of colors in the palette")
 

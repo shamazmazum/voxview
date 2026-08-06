@@ -102,11 +102,7 @@
 
       ;; Upload model texture
       (gl:bind-texture :texture-3d texture)
-      (gl:tex-image-3d :texture-3d 0 :red
-                       (array-dimension *noise* 0)
-                       (array-dimension *noise* 1)
-                       (array-dimension *noise* 2)
-                       0 :red :float (flatten *noise*))
+      (fast-upload-3d-texture *noise* :red :red :float)
       (gl:tex-parameter :texture-3d :texture-mag-filter :nearest)
       (gl:tex-parameter :texture-3d :texture-min-filter :nearest)
       (gl:tex-parameter :texture-3d :texture-wrap-s :mirrored-repeat)
