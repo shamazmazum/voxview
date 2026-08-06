@@ -51,10 +51,10 @@
 (defparameter *vertex-pass-0*
   (varjo:make-stage
    :vertex
-   '((position   :vec3)   ; Position of a vertex in the world system.
-     (label      :uint))  ; Label of a voxel. Not used in this stage
-   '((l-projection :mat4) ; On screen projection operator
-     (cp         :vec4))  ; Cutting plane
+   '((position     :vec3)  ; Position of a vertex in the world system.
+     (label        :uint)) ; Label of a voxel. Not used in this stage
+   '((l-projection :mat4)  ; On screen projection operator
+     (cp           :vec4)) ; Cutting plane
    '(:430)
    `((let ((pos4 (vari:vec4 position 1)))
        (values
@@ -137,10 +137,10 @@
 (defparameter *vertex-pass-2*
   (varjo:make-stage
    :vertex
-   '((position   :vec3)
-     (label      :uint))  ; Not used
-   '((c-projection :mat4) ; On screen projection operator
-     (cp         :vec4))  ; Cutting plane
+   '((position     :vec3)
+     (label        :uint)) ; Not used
+   '((c-projection :mat4)  ; On screen projection operator
+     (cp           :vec4)) ; Cutting plane
    '(:430)
    `((let ((pos4 (vari:vec4 position 1)))
        (values (* c-projection pos4)
