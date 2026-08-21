@@ -103,8 +103,8 @@
            (buttons-box    (gtk4:make-box :orientation gtk4:+orientation-vertical+
                                           :spacing 0))
 
-           (density-threshold  (scale 0d0 1d0 (scene-threshold  scene) 1d-1))
-           (density-multiplier (scale 0d0 1d0 (scene-multiplier scene) 1d-1))
+           (density-threshold  (scale 0d0 1.0d0 (scene-threshold  scene) 1d-1))
+           (density-multiplier (scale 0d0 1.5d0 (scene-multiplier scene) 1d-1))
            (camera-ϕ (scale 0d0 (* 2 pi)
                             (scene-camera-ϕ scene)
                             1d-1))
