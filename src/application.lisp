@@ -121,7 +121,6 @@
            (reload-model (gtk4:make-button :label "Reload model"))
            (next-model (gtk4:make-button :icon-name "go-next"))
            (prev-model (gtk4:make-button :icon-name "go-previous"))
-           (palette    (gtk4:make-button :label "Randomize palette"))
            (status-label (gtk4:make-label :str "Welcome to Voxview"))
 
            (motion-controller (gtk4:make-event-controller-motion))
@@ -147,7 +146,6 @@
       (gtk4:box-append control-box buttons-box)
       (gtk4:box-append buttons-box open-model)
       (gtk4:box-append buttons-box reload-model)
-      (gtk4:box-append buttons-box palette)
       (gtk4:box-append buttons-box navigation-box)
 
       (append-with-label camera-box camera-ϕ "ϕ")
@@ -169,14 +167,6 @@
       (gtk4:widget-add-controller (renderer-area renderer) wheel-controller)
       ;; Catch events from all buttons (there are no fucking touchpads here! ;)
       (setf (gtk4:gesture-single-button button-controller) 0)
-
-      ;; Randomize palette
-      (gtk4:connect
-       palette "clicked"
-       (lambda (widget)
-         (declare (ignore widget))
-         (funcall (renderer-palette-uploader renderer))
-         (gtk4:gl-area-queue-render (renderer-area renderer))))
 
       ;; Cutting plane checkbox
       (gtk4:connect

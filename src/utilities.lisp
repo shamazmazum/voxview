@@ -14,10 +14,6 @@
 (deftype getter () '(sera:-> () (values t &optional)))
 (deftype setter () '(sera:-> (t) (values t &optional)))
 
-(defparameter *light-Δϕ* 0.15
-  "Difference between positions of the camera and the light source
-when the latter tracks the first.")
-
 (defstruct scene
   ;; Camera
   (camera-fov 75.0 :type single-float)
@@ -25,44 +21,16 @@ when the latter tracks the first.")
   (camera-ψ 0.0 :type single-float)
   (camera-r 2.8 :type single-float)
 
-  ;; Light
-  (light-ϕ *light-Δϕ* :type single-float)
-  (light-ψ 0.0        :type single-float)
-  (light-r 2.8        :type single-float)
-
-  ;; Light settings
-  (show-light-p nil :type boolean)
-
   ;; Cutting plane
   (plane-ϕ 0.0 :type single-float)
   (plane-ψ 0.0 :type single-float)
   (plane-d 0.0 :type single-float)
   (plane-p nil :type boolean)
 
-  ;; How many elements to render?
-  (nelements 0 :type (unsigned-byte 32)))
+  ;; Is the scene loaded?
+  (loaded-p nil :type boolean))
 
-(sera:defconstructor gl-state
-  ;; Common resources
-  (vao         fixnum)
-  (posbuffer   fixnum)
-  (labelbuffer fixnum)
-  (indbuffer   fixnum)
-  (palbuffer   fixnum)
-  ;; Pass 0: A shadow map
-  (pass-0      fixnum)
-  (framebuffer fixnum)
-  (shadowmap   fixnum)
-  ;; Pass 1: actual rendering
-  (pass-1      fixnum)
-  (texture     fixnum)
-  (palette     fixnum)
-  ;; Pass 2: Preparation for cutting plane rendering
-  (pass-2      fixnum)
-  ;; Cutting plane rendering
-  (cp-program  fixnum)
-  ;; Light source rendering
-  (ls-program  fixnum))
+(sera:defconstructor gl-state)
 
 (sera:-> random-vec3 ()
          (values rtg-math.types:vec3 &optional))
@@ -84,13 +52,6 @@ when the latter tracks the first.")
      (* r cos-ϕ cos-ψ)
      (* r sin-ψ)
      (* r sin-ϕ cos-ψ))))
-
-(sera:-> light-position-vector (scene)
-         (values rtg-math.types:vec3 &optional))
-(defun light-position-vector (scene)
-  (object-position (scene-light-r scene)
-                   (scene-light-ϕ scene)
-                   (scene-light-ψ scene)))
 
 (sera:-> camera-position-vector (scene)
          (values rtg-math.types:vec3 &optional))
@@ -116,24 +77,6 @@ when the latter tracks the first.")
 (defun fast-upload-buffer (vector element-size &key (target :array-buffer))
   (cffi:with-pointer-to-vector-data (ptr vector)
     (%gl:buffer-data target (* element-size (length vector)) ptr :static-draw)))
-
-;; Voxel texture
-(sera:-> create-noise (alex:positive-fixnum single-float fixnum)
-         (values (simple-array single-float (* * *)) &optional))
-(defun create-noise (side scale seed)
-  (declare (optimize (speed 3)))
-  (let ((noise (make-array (list side side side)
-                           :element-type 'single-float)))
-    (flet ((trans (n)
-             (declare (type fixnum n))
-             (/ (* scale n) side)))
-    (do-indices (noise i j k)
-      (setf (aref noise i j k)
-            (cl-value-noise:value-noise (trans i) (trans j) (trans k)
-                                        :seed seed :octaves 7)))
-    noise)))
-
-(defparameter *noise*  (create-noise 128 20.0 43543))
 
 (sera:-> projection-matrix
          (rtg-math.types:vec3  alex:positive-fixnum alex:positive-fixnum)
