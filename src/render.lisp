@@ -91,7 +91,8 @@
                          (camera-projection-matrix area scene))
         (set-vec-uniform  (gl-state-program state) "CP"
                           (cutting-plane scene))
-        ;; TODO: USE-PLANE-P
+        (set-bool-uniform (gl-state-program state) "USE_CP_P"
+                          (scene-plane-p scene))
         (set-int-uniform (gl-state-program state) "MODEL_TEXTURE" 0)
         (set-float-uniform (gl-state-program state) "MULTIPLIER"
                            (scene-multiplier scene))
