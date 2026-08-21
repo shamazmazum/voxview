@@ -42,7 +42,7 @@
                                                  (- j 2))
                                       step)))
                        :r)))
-          (incf illumination (if (< current-depth sample) 1 0)))))
+          (incf illumination (if (< (- current-depth 0.0005) sample) 1 0)))))
     (/ illumination 25)))
 
 ;; Pass 0: Rendering shadows
