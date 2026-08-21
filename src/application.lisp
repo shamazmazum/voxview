@@ -80,11 +80,9 @@
     ;; KLUDGE: this setter is broken in cl-gtk4, so use gir directly
     (gir:invoke (window "set_size_request") 1200 700)
     (let* ((scene (make-scene))
-           (light-follows-camera-p t)
            (renderer (make-drawing-area scene))
            (control-frame (gtk4:make-frame :label "Controls"))
            (camera-frame  (gtk4:make-frame :label "Camera"))
-           (light-frame   (gtk4:make-frame :label "Light"))
            (plane-frame   (gtk4:make-frame :label "Cutting plane"))
            (toplevel-box   (gtk4:make-box :orientation gtk4:+orientation-vertical+
                                           :spacing 2))
@@ -93,8 +91,6 @@
            (control-box    (gtk4:make-box :orientation gtk4:+orientation-vertical+
                                           :spacing 10))
            (camera-box     (gtk4:make-box :orientation gtk4:+orientation-vertical+
-                                          :spacing 5))
-           (light-box      (gtk4:make-box :orientation gtk4:+orientation-vertical+
                                           :spacing 5))
            (plane-box      (gtk4:make-box :orientation gtk4:+orientation-vertical+
                                           :spacing 5))
@@ -112,21 +108,12 @@
                             1d-2))
            (camera-r (scale 5d-1 3d0 (scene-camera-r scene) 1d-1))
 
-           (light-ϕ (scale 0d0 (* 2 pi)
-                           (scene-light-ϕ scene) 1d-1))
-           (light-ψ (scale (+ (- (/ pi 2)) 0.01)
-                           (- (+ (/ pi 2)) 0.01)
-                           (scene-light-ψ scene)
-                           1d-2))
-           (follow-camera (gtk4:make-check-button :label "Follow camera"))
-           (show-light    (gtk4:make-check-button :label "Show light source"))
            (enable-plane  (gtk4:make-check-button :label "Enable cutting plane"))
-
            (plane-ϕ (scale 0d0 (* 2 pi)
                            (scene-plane-ϕ scene) 1d-1))
            (plane-ψ (scale (+ (- (/ pi 2)) 0.01)
                            (- (+ (/ pi 2)) 0.01)
-                           (scene-light-ψ scene)
+                           (scene-plane-ψ scene)
                            1d-2))
            (plane-d (scale -1.5d0 +1.5d0 (scene-plane-d scene) 1d-1))
 
@@ -145,7 +132,6 @@
       (setf (gtk4:window-child window) toplevel-box
             (gtk4:frame-child control-frame) control-box
             (gtk4:frame-child camera-frame) camera-box
-            (gtk4:frame-child light-frame) light-box
             (gtk4:frame-child plane-frame) plane-box
             (gtk4:widget-sensitive-p prev-model) nil
             (gtk4:widget-sensitive-p next-model) nil
@@ -157,7 +143,6 @@
       (gtk4:box-append big-box (renderer-area renderer))
       (gtk4:box-append big-box control-frame)
       (gtk4:box-append control-box camera-frame)
-      (gtk4:box-append control-box light-frame)
       (gtk4:box-append control-box plane-frame)
       (gtk4:box-append control-box buttons-box)
       (gtk4:box-append buttons-box open-model)
@@ -168,11 +153,6 @@
       (append-with-label camera-box camera-ϕ "ϕ")
       (append-with-label camera-box camera-ψ "ψ")
       (append-with-label camera-box camera-r "r")
-
-      (append-with-label light-box light-ϕ "ϕ")
-      (append-with-label light-box light-ψ "ψ")
-      (gtk4:box-append light-box follow-camera)
-      (gtk4:box-append light-box show-light)
 
       (append-with-label plane-box plane-ϕ "ϕ")
       (append-with-label plane-box plane-ψ "ψ")
@@ -198,31 +178,6 @@
          (funcall (renderer-palette-uploader renderer))
          (gtk4:gl-area-queue-render (renderer-area renderer))))
 
-      ;; Connect follow camera signal
-      (gtk4:connect
-       follow-camera "toggled"
-       (lambda (widget)
-         (declare (ignore widget))
-         (let ((state (gtk4:check-button-active-p follow-camera)))
-           (setf (gtk4:widget-sensitive-p light-ϕ) (not state)
-                 (gtk4:widget-sensitive-p light-ψ) (not state)
-                 light-follows-camera-p state))
-         (when light-follows-camera-p
-           (setf (gtk4:range-value light-ϕ)
-                 (mod (+ (gtk4:range-value camera-ϕ) *light-Δϕ*)
-                      (* 2 pi))
-                 (gtk4:range-value light-ψ)
-                 (gtk4:range-value camera-ψ)))))
-
-      ;; Connect "show light source" signal
-      (gtk4:connect
-       show-light "toggled"
-       (lambda (widget)
-         (declare (ignore widget))
-         (setf (scene-show-light-p scene)
-               (gtk4:check-button-active-p show-light))
-         (gtk4:gl-area-queue-render (renderer-area renderer))))
-
       ;; Cutting plane checkbox
       (gtk4:connect
        enable-plane "toggled"
@@ -245,30 +200,12 @@
                      `(connect
                        ,scale (lambda (x)
                                 (setf (,accessor scene) (float x 0.0))))))
-          (%connect light-ϕ  scene-light-ϕ)
-          (%connect light-ψ  scene-light-ψ)
           (%connect camera-ϕ scene-camera-ϕ)
           (%connect camera-ψ scene-camera-ψ)
           (%connect camera-r scene-camera-r)
           (%connect plane-ϕ  scene-plane-ϕ)
           (%connect plane-ψ  scene-plane-ψ)
-          (%connect plane-d  scene-plane-d))
-
-        ;; Camera tracking
-        (connect camera-ψ
-                 (lambda (v)
-                   (when light-follows-camera-p
-                     (setf (gtk4:range-value light-ψ) v))))
-        (connect camera-ϕ
-                 (lambda (v)
-                   (when light-follows-camera-p
-                     (setf (gtk4:range-value light-ϕ)
-                           (mod (+ v *light-Δϕ*) (* 2 pi)))))))
-
-      ;; Set "light follows camera" knob to a correct position
-      (setf (gtk4:check-button-active-p follow-camera) light-follows-camera-p)
-      ;; Same for "show light source"
-      (setf (gtk4:check-button-active-p show-light) (scene-show-light-p scene))
+          (%connect plane-d  scene-plane-d)))
 
       (with-place (model-pointer-getter model-pointer-setter)
         (gtk4:connect
@@ -344,19 +281,15 @@
       ;; "Mouse look"
       ;; TODO: A separate control for sensitivity?
       (let ((mouse-sensitivity 10.0)
-            old-x old-y moving-camera-p moving-light-p)
+            old-x old-y moving-camera-p)
         (flet ((set-state! (value)
-                 (let ((button (gtk4:gesture-single-current-button button-controller)))
-                   (cond
-                     ((= button 1)
-                      (setq moving-camera-p value))
-                     ((= button 3)
-                      (setq moving-light-p  value))))))
+                 (when (= (gtk4:gesture-single-current-button button-controller) 1)
+                   (setq moving-camera-p value))))
           (gtk4:connect
            motion-controller "motion"
            (lambda (widget x y)
              (declare (ignore widget))
-             (when (or moving-camera-p moving-light-p)
+             (when moving-camera-p
                (with-screen-size (width height)
                    (renderer-area renderer)
                  (let ((Δϕ (* mouse-sensitivity (/ (- x old-x) width)))
@@ -366,10 +299,7 @@
                               (setf (gtk4:range-value control-ϕ)
                                     (mod (+ ϕ Δϕ) (* 2 pi)))
                               (incf (gtk4:range-value control-ψ) Δψ))))
-                     (when moving-camera-p
-                       (modify-controls camera-ϕ camera-ψ))
-                     (when (and moving-light-p (not light-follows-camera-p))
-                       (modify-controls light-ϕ light-ψ)))))
+                     (modify-controls camera-ϕ camera-ψ))))
                (setq old-x x old-y y))))
 
           (gtk4:connect
