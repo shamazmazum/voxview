@@ -7,7 +7,8 @@
    :vertex
    '()                   ; No input
    '((projection :mat4)  ; On screen projection operator
-     (cp         :vec4)) ; Cutting plane
+     (cp         :vec4)  ; Cutting plane
+     (planar     :mat3)) ; Transform from planar space to the world space
    '(:430)
    ;; This is a very simple case with planes which are always
    ;; perpendicular to the Z axis.
@@ -17,8 +18,8 @@
                      (vari:vec2 -1.0 +1.0)
                      (vari:vec2 +1.0 +1.0)))
             (svertex (aref square vari:gl-vertex-id))
-            (z (- (* 2 (/ (float vari:gl-instance-id) ,+n-planes+)) 1))
-            (vertex (vari:vec3 svertex z)))
+            (dist (- (* 2 (/ (float vari:gl-instance-id) ,+n-planes+)) 1))
+            (vertex (* planar (* (vari:vec3 svertex dist) 2))))
        (values
         (* projection (vari:vec4 vertex 1))
         vertex)))))

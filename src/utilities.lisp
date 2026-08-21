@@ -102,6 +102,22 @@ dimensions of the screen."
     position
     (rtg-math.vector3:make 0.0 0.0 0.0))))
 
+(sera:-> planar-space-basis (scene)
+         (values rtg-math.types:mat3 &optional))
+(defun planar-space-basis (scene)
+  (let* ((position (camera-position-vector scene))
+         (u (random-vec3))
+         (v (random-vec3))
+         ;; Normal to the planes
+         (n (v3:normalize position))
+         ;; Tangent space basis vector #1
+         (t1 (v3:- u (v3:*s n (v3:dot n u))))
+         (t1 (v3:normalize t1))
+         ;; Tangent space basis vector #2
+         (t2 (v3:- v (v3:*s n (v3:dot n v)) (v3:*s t1 (v3:dot t1 v))))
+         (t2 (v3:normalize t2)))
+    (m3:from-columns t1 t2 n)))
+
 (defun create-shader (stage compiled-shader)
   (let ((shader (gl:create-shader stage)))
     (gl:shader-source shader (varjo:glsl-code compiled-shader))
@@ -156,12 +172,16 @@ dimensions of the screen."
    program uniform
    (if value 1 0)))
 
-(sera:-> set-mat4-uniform (t string rtg-math.types:mat4)
+(sera:-> set-mat-uniform (t string (simple-array single-float (*)))
          (values &optional))
-(defun set-mat4-uniform (program uniform matrix)
+(defun set-mat-uniform (program uniform matrix)
   (gl:uniform-matrix
    (gl:get-uniform-location program uniform)
-   4 (vector matrix) nil)
+   (ecase (length matrix)
+     (9  3)
+     (16 4))
+   (vector matrix)
+   nil)
   (values))
 
 (sera:-> set-vec-uniform (t string (simple-array single-float (*)))

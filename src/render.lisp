@@ -40,7 +40,6 @@
   (lambda (area)
     (gtk4:gl-area-make-current area)
 
-    ;; TODO:: Do something to initialize GL state
     (gl:clear-color 0.0 0.0 0.0 0.0)
     (gl:enable :blend)
     (gl:blend-func :src-alpha :one-minus-src-alpha)
@@ -88,8 +87,8 @@
 
         (gl:use-program (gl-state-program state))
 
-        (set-mat4-uniform (gl-state-program state) "PROJECTION"
-                          (camera-projection-matrix area scene))
+        (set-mat-uniform (gl-state-program state) "PROJECTION"
+                         (camera-projection-matrix area scene))
         (set-vec-uniform  (gl-state-program state) "CP"
                           (cutting-plane scene))
         ;; TODO: USE-PLANE-P
@@ -98,6 +97,8 @@
                            (scene-multiplier scene))
         (set-float-uniform (gl-state-program state) "THRESHOLD"
                            (scene-threshold scene))
+        (set-mat-uniform (gl-state-program state) "PLANAR"
+                         (planar-space-basis scene))
 
         ;; Bind textures
         (gl:active-texture :texture0)
