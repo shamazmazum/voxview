@@ -15,6 +15,10 @@
 (deftype setter () '(sera:-> (t) (values t &optional)))
 
 (defstruct scene
+  ;; Density settings
+  (multiplier 1.0 :type single-float)
+  (threshold  0.0 :type single-float)
+
   ;; Camera
   (camera-fov 75.0 :type single-float)
   (camera-ϕ 0.0 :type single-float)
@@ -30,7 +34,10 @@
   ;; Is the scene loaded?
   (loaded-p nil :type boolean))
 
-(sera:defconstructor gl-state)
+(sera:defconstructor gl-state
+  (vao           fixnum)
+  (model-texture fixnum)
+  (program       fixnum))
 
 (sera:-> random-vec3 ()
          (values rtg-math.types:vec3 &optional))
@@ -134,6 +141,14 @@ dimensions of the screen."
    value)
   (values))
 
+(sera:-> set-float-uniform (t string single-float)
+         (values &optional))
+(defun set-float-uniform (program uniform value)
+  (gl:uniformf
+   (gl:get-uniform-location program uniform)
+   value)
+  (values))
+
 (sera:-> set-bool-uniform (t string boolean)
          (values &optional))
 (defun set-bool-uniform (program uniform value)
@@ -190,9 +205,9 @@ dimensions of the screen."
   #+sbcl
   (cffi:with-pointer-to-vector-data (ptr (sb-ext:array-storage-vector array))
     (gl:tex-image-3d :texture-3d 0 internal-format
-                     (array-dimension array 0)
-                     (array-dimension array 1)
                      (array-dimension array 2)
+                     (array-dimension array 1)
+                     (array-dimension array 0)
                      0 format type ptr)))
 
 (defconstant +palette-color-number+ 64

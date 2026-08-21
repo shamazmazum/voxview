@@ -52,8 +52,9 @@
           (gtk4:scale-draw-value-p scale) t)
     scale))
 
-(defun append-with-label (toplevel scale label)
-  (let ((box (gtk4:make-box :orientation gtk4:+orientation-horizontal+ :spacing 5))
+(defun append-with-label (toplevel scale label
+                          &optional (orientation gtk4:+orientation-horizontal+))
+  (let ((box (gtk4:make-box :orientation orientation :spacing 5))
         (label (gtk4:make-label :str label)))
     (gtk4:box-append box scale)
     (gtk4:box-append box label)
@@ -82,6 +83,7 @@
     (let* ((scene (make-scene))
            (renderer (make-drawing-area scene))
            (control-frame (gtk4:make-frame :label "Controls"))
+           (density-frame (gtk4:make-frame :label "Density settings"))
            (camera-frame  (gtk4:make-frame :label "Camera"))
            (plane-frame   (gtk4:make-frame :label "Cutting plane"))
            (toplevel-box   (gtk4:make-box :orientation gtk4:+orientation-vertical+
@@ -89,6 +91,8 @@
            (big-box        (gtk4:make-box :orientation gtk4:+orientation-horizontal+
                                           :spacing 0))
            (control-box    (gtk4:make-box :orientation gtk4:+orientation-vertical+
+                                          :spacing 10))
+           (density-box    (gtk4:make-box :orientation gtk4:+orientation-vertical+
                                           :spacing 10))
            (camera-box     (gtk4:make-box :orientation gtk4:+orientation-vertical+
                                           :spacing 5))
@@ -99,6 +103,8 @@
            (buttons-box    (gtk4:make-box :orientation gtk4:+orientation-vertical+
                                           :spacing 0))
 
+           (density-threshold  (scale 0d0 1d0 (scene-threshold  scene) 1d-1))
+           (density-multiplier (scale 0d0 1d0 (scene-multiplier scene) 1d-1))
            (camera-ϕ (scale 0d0 (* 2 pi)
                             (scene-camera-ϕ scene)
                             1d-1))
@@ -129,6 +135,7 @@
            (button-controller (gtk4:make-gesture-click)))
 
       (setf (gtk4:window-child window) toplevel-box
+            (gtk4:frame-child density-frame) density-box
             (gtk4:frame-child control-frame) control-box
             (gtk4:frame-child camera-frame) camera-box
             (gtk4:frame-child plane-frame) plane-box
@@ -142,6 +149,7 @@
       (gtk4:box-append big-box (renderer-area renderer))
       (gtk4:box-append big-box control-frame)
       (gtk4:box-append control-box camera-frame)
+      (gtk4:box-append control-box density-frame)
       (gtk4:box-append control-box plane-frame)
       (gtk4:box-append control-box buttons-box)
       (gtk4:box-append buttons-box open-model)
@@ -151,6 +159,11 @@
       (append-with-label camera-box camera-ϕ "ϕ")
       (append-with-label camera-box camera-ψ "ψ")
       (append-with-label camera-box camera-r "r")
+
+      (append-with-label density-box density-multiplier
+                         "Multiplier" gtk4:+orientation-vertical+)
+      (append-with-label density-box density-threshold
+                         "Threshold"  gtk4:+orientation-vertical+)
 
       (append-with-label plane-box plane-ϕ "ϕ")
       (append-with-label plane-box plane-ψ "ψ")
@@ -195,7 +208,9 @@
           (%connect camera-r scene-camera-r)
           (%connect plane-ϕ  scene-plane-ϕ)
           (%connect plane-ψ  scene-plane-ψ)
-          (%connect plane-d  scene-plane-d)))
+          (%connect plane-d  scene-plane-d)
+          (%connect density-multiplier scene-multiplier)
+          (%connect density-threshold  scene-threshold)))
 
       (with-place (model-pointer-getter model-pointer-setter)
         (gtk4:connect

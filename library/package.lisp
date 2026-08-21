@@ -6,10 +6,9 @@
   (:export #:do-indices
            ;; Model
            #:model
-           #:model-points
-           #:model-indices
-           #:model-labels
+           #:model-texture-data
            ;; Model computation
+           #:allowed-array
            #:compute-model
            ;; List zippers
            #:list-zipper

@@ -50,9 +50,7 @@
 (defun load-npy-model (pathname)
   (declare (optimize (speed 3)))
   (let ((model (numpy-npy:load-array pathname)))
-    (unless (and (or (equalp (array-element-type model) 'bit)
-                     (equalp (array-element-type model) '(unsigned-byte 32)))
-                 (=  (array-rank model) 3))
+    (unless (typep model 'allowed-array)
       (error 'content-error
              :dimensions (array-dimensions model)
              :type (array-element-type model)))

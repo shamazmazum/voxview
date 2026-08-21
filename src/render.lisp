@@ -24,11 +24,13 @@
 (sera:-> make-gpu-uploader (gir::object-instance getter scene)
          (values model-gpu-uploader &optional))
 (defun make-gpu-uploader (area state-getter scene)
-  (declare (ignore state-getter))
   (lambda (model)
-    (declare (ignore model))
     (gtk4:gl-area-make-current area)
-    ;; TODO:: Here do something for model loading (e.g. upload textures)
+
+    (let ((state (funcall state-getter)))
+      (gl:bind-texture :texture-3d (gl-state-model-texture state))
+      (fast-upload-3d-texture (model-texture-data model) :red :red :float))
+
     (setf (scene-loaded-p scene) t)
     (values)))
 
@@ -40,9 +42,22 @@
 
     ;; TODO:: Do something to initialize GL state
     (gl:clear-color 0.0 0.0 0.0 0.0)
+    (gl:enable :blend)
+    (gl:blend-func :src-alpha :one-minus-src-alpha)
+
     ;; Set GL state
-    (funcall setter (gl-state))
-    (values)))
+    (let ((program (create-program *shaders*))
+          (texture (gl:gen-texture))
+          (vao     (gl:gen-vertex-array)))
+      (gl:bind-texture :texture-3d texture)
+      (gl:tex-parameter :texture-3d :texture-mag-filter :linear)
+      (gl:tex-parameter :texture-3d :texture-min-filter :linear)
+      (gl:tex-parameter :texture-3d :texture-wrap-s :clamp-to-border)
+      (gl:tex-parameter :texture-3d :texture-wrap-t :clamp-to-border)
+      (gl:tex-parameter :texture-3d :texture-wrap-r :clamp-to-border)
+
+      (funcall setter (gl-state vao texture program))
+      (values))))
 
 (sera:-> make-unrealize-handler (getter)
          (values (sera:-> (gir::object-instance) (values &optional)) &optional))
@@ -51,6 +66,12 @@
     (gtk4:gl-area-make-current area)
 
     ;; Clear GL state
+    (let ((state (funcall state-getter)))
+      (gl:delete-texture (gl-state-model-texture state))
+      (gl:delete-program (gl-state-program state))
+      (gl:delete-vertex-arrays
+       (list (gl-state-vao state))))
+
     (values)))
 
 (sera:-> make-draw-handler (getter scene)
@@ -59,12 +80,33 @@
                  &optional))
 (defun make-draw-handler (state-getter scene)
   (lambda (area context)
-    (declare (ignore area context))
+    (declare (ignore context))
     (when (scene-loaded-p scene)
-      (let ((gl-state (funcall state-getter)))
-        (declare (ignore gl-state))
+      (let ((state (funcall state-getter)))
         ;; Draw the scene
         (gl:clear :color-buffer-bit)
+
+        (gl:use-program (gl-state-program state))
+
+        (set-mat4-uniform (gl-state-program state) "PROJECTION"
+                          (camera-projection-matrix area scene))
+        (set-vec-uniform  (gl-state-program state) "CP"
+                          (cutting-plane scene))
+        ;; TODO: USE-PLANE-P
+        (set-int-uniform (gl-state-program state) "MODEL_TEXTURE" 0)
+        (set-float-uniform (gl-state-program state) "MULTIPLIER"
+                           (scene-multiplier scene))
+        (set-float-uniform (gl-state-program state) "THRESHOLD"
+                           (scene-threshold scene))
+
+        ;; Bind textures
+        (gl:active-texture :texture0)
+        (gl:bind-texture :texture-3d (gl-state-model-texture state))
+
+        ;; Render scene
+        (gl:bind-vertex-array (gl-state-vao state))
+        (gl:draw-arrays-instanced :triangle-strip 0 4 +n-planes+)
+
         ;; T indicates that we are done
         t))))
 
