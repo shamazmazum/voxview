@@ -29,7 +29,13 @@
 
     (let ((state (funcall state-getter)))
       (gl:bind-texture :texture-3d (gl-state-model-texture state))
-      (fast-upload-3d-texture (model-texture-data model) :red :red :float))
+      (fast-upload-voxels (model-texture-data model))
+
+      (gl:use-program (gl-state-program state))
+      (set-float-uniform (gl-state-program state) "MIN"
+                         (model-min model))
+      (set-float-uniform (gl-state-program state) "MAX"
+                         (model-max model)))
 
     (setf (scene-loaded-p scene) t)
     (values)))
@@ -45,9 +51,10 @@
     (gl:blend-func :src-alpha :one-minus-src-alpha)
 
     ;; Set GL state
-    (let ((program (create-program *shaders*))
-          (texture (gl:gen-texture))
-          (vao     (gl:gen-vertex-array)))
+    (let ((program  (create-program *shaders*))
+          (texture  (gl:gen-texture))
+          (colormap (gl:gen-texture))
+          (vao      (gl:gen-vertex-array)))
       (gl:bind-texture :texture-3d texture)
       (gl:tex-parameter :texture-3d :texture-mag-filter :linear)
       (gl:tex-parameter :texture-3d :texture-min-filter :linear)
@@ -55,7 +62,13 @@
       (gl:tex-parameter :texture-3d :texture-wrap-t :clamp-to-border)
       (gl:tex-parameter :texture-3d :texture-wrap-r :clamp-to-border)
 
-      (funcall setter (gl-state vao texture program))
+      (gl:bind-texture :texture-1d colormap)
+      (gl:tex-parameter :texture-1d :texture-mag-filter :linear)
+      (gl:tex-parameter :texture-1d :texture-min-filter :linear)
+      (gl:tex-parameter :texture-1d :texture-wrap-s :clamp-to-border)
+      (fast-upload-colormap *viridis*)
+
+      (funcall setter (gl-state vao texture colormap program))
       (values))))
 
 (sera:-> make-unrealize-handler (getter)
@@ -66,7 +79,9 @@
 
     ;; Clear GL state
     (let ((state (funcall state-getter)))
-      (gl:delete-texture (gl-state-model-texture state))
+      (gl:delete-textures
+       (list (gl-state-model-texture state)
+             (gl-state-colormap      state)))
       (gl:delete-program (gl-state-program state))
       (gl:delete-vertex-arrays
        (list (gl-state-vao state))))
@@ -94,6 +109,7 @@
         (set-bool-uniform (gl-state-program state) "USE_CP_P"
                           (scene-plane-p scene))
         (set-int-uniform (gl-state-program state) "MODEL_TEXTURE" 0)
+        (set-int-uniform (gl-state-program state) "COLORMAP" 1)
         (set-float-uniform (gl-state-program state) "MULTIPLIER"
                            (scene-multiplier scene))
         (set-float-uniform (gl-state-program state) "THRESHOLD"
@@ -104,6 +120,8 @@
         ;; Bind textures
         (gl:active-texture :texture0)
         (gl:bind-texture :texture-3d (gl-state-model-texture state))
+        (gl:active-texture :texture1)
+        (gl:bind-texture :texture-1d (gl-state-colormap state))
 
         ;; Render scene
         (gl:bind-vertex-array (gl-state-vao state))

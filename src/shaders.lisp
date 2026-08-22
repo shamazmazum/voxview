@@ -32,6 +32,9 @@
    '((cp-dist       :float)      ; Distance to the cutting plane
      (coord         :vec3))      ; Fragment coordinate in the world space
    '((model-texture :sampler-3d) ; Voxel data
+     (colormap      :sampler-1d) ; Colormap sampler
+     (min           :float)      ; Minimum density value in the image
+     (max           :float)      ; Maximum density value in the image
      (threshold     :float)      ; Minimum density for fragment to be visible
      (multiplier    :float)      ; Density alpha multiplier
      (use-cp-p      :bool))      ; Do we use cutting plane?
@@ -51,10 +54,11 @@
          ;; Discard too transparent fragments
          (vari:discard))
        (vari:vec4
-        (vari:mix
-         (vari:vec3 1.0 0.0 0.0)
-         (vari:vec3 0.0 0.0 1.0)
-         (vari:clamp (* 3 density) 0 1))
+        (vari:swizzle
+         (vari:texture
+          colormap
+          (/ (- density min) (- max min))) ; Normalized density
+         :rgb)
         (* multiplier density))))))
 
 (defparameter *shaders*

@@ -9,3 +9,4 @@ ql cl-fad
 ultralisp melisgl-named-readtables
 github cbaggers/varjo
 github shamazmazum/numpy-npy :tag v0.4
+ql float-features

@@ -8,10 +8,13 @@
     :components ((:file "package")
                  (:file "do-indices")
                  (:file "model")
+                 (:file "colormap")
                  (:file "list-zipper"))
     :depends-on (:alexandria
                  :serapeum
-                 :stateless-iterators)
+                 :stateless-iterators
+                 :float-features
+                 :rtg-math)
     :in-order-to ((test-op (load-op "voxview/library/tests")))
     :perform (test-op (op system)
                       (declare (ignore op system))

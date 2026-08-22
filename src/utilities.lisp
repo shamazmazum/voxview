@@ -37,6 +37,7 @@
 (sera:defconstructor gl-state
   (vao           fixnum)
   (model-texture fixnum)
+  (colormap      fixnum)
   (program       fixnum))
 
 (sera:-> random-vec3 ()
@@ -80,10 +81,6 @@
      (* (imagpart cisϕ) (realpart cisψ))
      (* (imagpart cisψ))
      (- d))))
-
-(defun fast-upload-buffer (vector element-size &key (target :array-buffer))
-  (cffi:with-pointer-to-vector-data (ptr vector)
-    (%gl:buffer-data target (* element-size (length vector)) ptr :static-draw)))
 
 (sera:-> projection-matrix
          (rtg-math.types:vec3  alex:positive-fixnum alex:positive-fixnum)
@@ -212,23 +209,34 @@ dimensions of the screen."
               :displaced-to array
               :displaced-index-offset 0))
 
-(serapeum:-> fast-upload-3d-texture ((simple-array single-float (* * *)) t t t)
+(serapeum:-> fast-upload-voxels ((simple-array single-float (* * *)))
              (values &optional))
-(defun fast-upload-3d-texture (array internal-format format type)
+(defun fast-upload-voxels (array)
   (declare (optimize (speed 3)))
   #-sbcl
-  (gl:tex-image-3d :texture-3d 0 internal-format
-                   (array-dimension array 0)
-                   (array-dimension array 1)
+  (gl:tex-image-3d :texture-3d 0 :red
                    (array-dimension array 2)
-                   0 format type (flatten array))
+                   (array-dimension array 1)
+                   (array-dimension array 0)
+                   0 :red :float (flatten array))
   #+sbcl
   (cffi:with-pointer-to-vector-data (ptr (sb-ext:array-storage-vector array))
-    (gl:tex-image-3d :texture-3d 0 internal-format
+    (gl:tex-image-3d :texture-3d 0 :red
                      (array-dimension array 2)
                      (array-dimension array 1)
                      (array-dimension array 0)
-                     0 format type ptr)))
+                     0 :red :float ptr)))
+
+(serapeum:-> fast-upload-colormap ((simple-array single-float (* 3)))
+             (values &optional))
+(defun fast-upload-colormap (array)
+  (declare (optimize (speed 3)))
+  #-sbcl
+  (gl:tex-image-1d :texture-1d 0 :rgb (array-dimension array 0) 0 :rgb :float
+                   (flatten array))
+  #+sbcl
+  (cffi:with-pointer-to-vector-data (ptr (sb-ext:array-storage-vector array))
+    (gl:tex-image-1d :texture-1d 0 :rgb (array-dimension array 0) 0 :rgb :float ptr)))
 
 (defconstant +palette-color-number+ 64
   "NUmber of colors in the palette")

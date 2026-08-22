@@ -7,6 +7,8 @@
            ;; Model
            #:model
            #:model-texture-data
+           #:model-min
+           #:model-max
            ;; Model computation
            #:allowed-array
            #:compute-model
@@ -18,4 +20,6 @@
            #:current-or-previous
            #:step-forward
            #:step-backward
-           #:goto-element))
+           #:goto-element
+           ;; Colormaps
+           #:*viridis*))

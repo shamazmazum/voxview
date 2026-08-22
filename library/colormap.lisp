@@ -1,0 +1,48 @@
+(in-package :voxview/library)
+
+(alex:define-constant +viridis-spec+
+  '((0.0000 . #a(3 single-float . (0.2670 0.0049 0.3294)))
+    (0.1429 . #a(3 single-float . (0.2747 0.1970 0.4973)))
+    (0.2857 . #a(3 single-float . (0.2127 0.3591 0.5516)))
+    (0.4286 . #a(3 single-float . (0.1530 0.4981 0.5577)))
+    (0.5714 . #a(3 single-float . (0.1221 0.6321 0.5308)))
+    (0.7143 . #a(3 single-float . (0.2900 0.7588 0.4278)))
+    (0.8571 . #a(3 single-float . (0.6222 0.8538 0.2262)))
+    (1.0000 . #a(3 single-float . (0.9932 0.9062 0.1439))))
+  :test #'equalp)
+
+(serapeum:-> sample-colormap (single-float list)
+             (values rtg-math.types:vec3 &optional))
+(defun sample-colormap (x spec)
+  (labels ((%go (head)
+             (let* ((entry1 (first head))
+                    (val1   (car entry1))
+                    (color1 (cdr entry1))
+                    (entry2 (second head))
+                    (val2   (car entry2))
+                    (color2 (cdr entry2)))
+               (declare (type (cons single-float rtg-math.types:vec3) entry1 entry2))
+               (assert (>= x val1))
+               (if (< val2 x)
+                   (%go (cdr head))
+                   (v3:+ (v3:*s (v3:/s (v3:- color2 color1) (- val2 val1)) (- x val1))
+                         color1)))))
+    (%go spec)))
+
+(defconstant +colormap-texture-size+ 128)
+
+(serapeum:-> make-colormap-texture (list)
+             (values (simple-array single-float (* 3)) &optional))
+(defun make-colormap-texture (spec)
+  (let ((colormap (make-array (list +colormap-texture-size+ 3)
+                              :element-type 'single-float)))
+    (loop for i below (array-dimension colormap 0)
+          for x = (float (/ i (1- (array-dimension colormap 0))))
+          for color = (sample-colormap x spec)
+          for idx = (array-row-major-index colormap i 0) do
+            (loop for j below 3 do
+              (setf (row-major-aref colormap (+ idx j))
+                    (aref color j))))
+    colormap))
+
+(defparameter *viridis* (make-colormap-texture +viridis-spec+))
