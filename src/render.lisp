@@ -46,7 +46,7 @@
   (lambda (area)
     (gtk4:gl-area-make-current area)
 
-    (gl:clear-color 0.0 0.0 0.0 0.0)
+    (gl:clear-color 0.0 0.0 0.0 1.0)
     (gl:enable :blend)
     (gl:blend-func :src-alpha :one-minus-src-alpha)
 
