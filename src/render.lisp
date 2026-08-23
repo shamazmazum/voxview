@@ -95,13 +95,13 @@
 (defun make-draw-handler (state-getter scene)
   (lambda (area context)
     (declare (ignore context))
+
+    (gl:clear :color-buffer-bit)
     (when (scene-loaded-p scene)
       (let ((state (funcall state-getter)))
-        ;; Draw the scene
-        (gl:clear :color-buffer-bit)
-
         (gl:use-program (gl-state-program state))
 
+        ;; Set uniforms
         (set-mat-uniform (gl-state-program state) "PROJECTION"
                          (camera-projection-matrix area scene))
         (set-vec-uniform  (gl-state-program state) "CP"
@@ -125,10 +125,10 @@
 
         ;; Render scene
         (gl:bind-vertex-array (gl-state-vao state))
-        (gl:draw-arrays-instanced :triangle-strip 0 4 +n-planes+)
+        (gl:draw-arrays-instanced :triangle-strip 0 4 +n-planes+)))
 
-        ;; T indicates that we are done
-        t))))
+    ;; T indicates that we are done
+    t))
 
 ;; KLUDGE: There are no GLArea.get_allowed_apis on Ubuntu
 (defun (setf maybe-gl-area-allowed-apis) (value area)
