@@ -8,7 +8,8 @@
    '()                   ; No input
    '((projection :mat4)  ; On screen projection operator
      (cp         :vec4)  ; Cutting plane
-     (planar     :mat3)) ; Transform from planar space to the world space
+     (planar     :mat3)  ; Transform from planar space to the world space
+     (voxel-size :vec3)) ; Size of a voxel
    '(:430)
    ;; This is a very simple case with planes which are always
    ;; perpendicular to the Z axis.
@@ -20,7 +21,7 @@
             (svertex (aref square vari:gl-vertex-id))
             (dist (- (* 2 (/ (float vari:gl-instance-id) ,+n-planes+)) 1))
             (vertex (* planar (* (vari:vec3 svertex dist) 2)))
-            (vertex4 (vari:vec4 vertex 1)))
+            (vertex4 (vari:vec4 (* vertex voxel-size) 1)))
        (values
         (* projection vertex4)
         (vari:dot cp vertex4)

@@ -116,6 +116,11 @@
                            (scene-threshold scene))
         (set-mat-uniform (gl-state-program state) "PLANAR"
                          (planar-space-basis scene))
+        (set-vec-uniform  (gl-state-program state) "VOXEL_SIZE"
+                          (v3:make
+                           (scene-voxel-size-x scene)
+                           (scene-voxel-size-y scene)
+                           (scene-voxel-size-z scene)))
 
         ;; Bind textures
         (gl:active-texture :texture0)

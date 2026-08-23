@@ -15,6 +15,11 @@
 (deftype setter () '(sera:-> (t) (values t &optional)))
 
 (defstruct scene
+  ;; Voxel settings
+  (voxel-size-x 1.0 :type single-float)
+  (voxel-size-y 1.0 :type single-float)
+  (voxel-size-z 1.0 :type single-float)
+
   ;; Density settings
   (multiplier 1.0 :type single-float)
   (threshold  0.0 :type single-float)

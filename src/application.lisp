@@ -74,6 +74,22 @@
           (gtk4:file-chooser-add-filter dialog filter)))
   (values))
 
+(sera:-> make-voxel-size-button ((single-float 0.0 2.0))
+         (values gir::object-instance &optional))
+(defun make-voxel-size-button (value)
+  (let* ((adjustment (gtk4:make-adjustment
+                      :value          (float value 0d0)
+                      :lower          0d0
+                      :upper          2d0
+                      :step-increment 1d-1
+                      :page-increment 5d-1
+                      :page-size      0d0))
+         (button     (gtk4:make-spin-button
+                      :adjustment     adjustment
+                      :climb-rate     0d0
+                      :digits         4)))
+    button))
+
 (gtk4:define-application (:name voxview-transparent :id "org.fatimp.voxview-transparent")
   (gtk4:define-main-window (window (gtk4:make-application-window
                                     :application gtk4:*application*))
@@ -83,6 +99,7 @@
     (let* ((scene (make-scene))
            (renderer (make-drawing-area scene))
            (control-frame (gtk4:make-frame :label "Controls"))
+           (voxel-frame   (gtk4:make-frame :label "Voxel size"))
            (density-frame (gtk4:make-frame :label "Density settings"))
            (camera-frame  (gtk4:make-frame :label "Camera"))
            (plane-frame   (gtk4:make-frame :label "Cutting plane"))
@@ -91,6 +108,8 @@
            (big-box        (gtk4:make-box :orientation gtk4:+orientation-horizontal+
                                           :spacing 0))
            (control-box    (gtk4:make-box :orientation gtk4:+orientation-vertical+
+                                          :spacing 10))
+           (voxel-box      (gtk4:make-box :orientation gtk4:+orientation-vertical+
                                           :spacing 10))
            (density-box    (gtk4:make-box :orientation gtk4:+orientation-vertical+
                                           :spacing 10))
@@ -102,6 +121,10 @@
                                           :spacing 2))
            (buttons-box    (gtk4:make-box :orientation gtk4:+orientation-vertical+
                                           :spacing 0))
+
+           (voxel-size-x (make-voxel-size-button (scene-voxel-size-x scene)))
+           (voxel-size-y (make-voxel-size-button (scene-voxel-size-y scene)))
+           (voxel-size-z (make-voxel-size-button (scene-voxel-size-z scene)))
 
            (density-threshold  (scale 0d0 1.0d0 (scene-threshold  scene) 1d-1))
            (density-multiplier (scale 0d0 1.5d0 (scene-multiplier scene) 1d-1))
@@ -135,6 +158,7 @@
            (button-controller (gtk4:make-gesture-click)))
 
       (setf (gtk4:window-child window) toplevel-box
+            (gtk4:frame-child voxel-frame) voxel-box
             (gtk4:frame-child density-frame) density-box
             (gtk4:frame-child control-frame) control-box
             (gtk4:frame-child camera-frame) camera-box
@@ -149,6 +173,7 @@
       (gtk4:box-append big-box (renderer-area renderer))
       (gtk4:box-append big-box control-frame)
       (gtk4:box-append control-box camera-frame)
+      (gtk4:box-append control-box voxel-frame)
       (gtk4:box-append control-box density-frame)
       (gtk4:box-append control-box plane-frame)
       (gtk4:box-append control-box buttons-box)
@@ -159,6 +184,10 @@
       (append-with-label camera-box camera-ϕ "ϕ")
       (append-with-label camera-box camera-ψ "ψ")
       (append-with-label camera-box camera-r "r")
+
+      (append-with-label voxel-box voxel-size-x "x")
+      (append-with-label voxel-box voxel-size-y "y")
+      (append-with-label voxel-box voxel-size-z "z")
 
       (append-with-label density-box density-multiplier
                          "Multiplier" gtk4:+orientation-vertical+)
@@ -190,27 +219,33 @@
                (gtk4:check-button-active-p enable-plane))
          (gtk4:gl-area-queue-render (renderer-area renderer))))
 
-      ;; Connect scale signals
-      (flet ((connect (scale f)
-               (gtk4:connect
-                scale "value-changed"
-                (lambda (widget)
-                  (declare (ignore widget))
-                  (let ((x (gtk4:range-value scale)))
-                    (funcall f x))
-                  (gtk4:gl-area-queue-render (renderer-area renderer))))))
-        (macrolet ((%connect (scale accessor)
-                     `(connect
-                       ,scale (lambda (x)
-                                (setf (,accessor scene) (float x 0.0))))))
-          (%connect camera-ϕ scene-camera-ϕ)
-          (%connect camera-ψ scene-camera-ψ)
-          (%connect camera-r scene-camera-r)
-          (%connect plane-ϕ  scene-plane-ϕ)
-          (%connect plane-ψ  scene-plane-ψ)
-          (%connect plane-d  scene-plane-d)
-          (%connect density-multiplier scene-multiplier)
-          (%connect density-threshold  scene-threshold)))
+      ;; Connect scale & spin button signals
+      (labels ((%connect (w g s)
+                 (gtk4:connect
+                  w "value-changed"
+                  (lambda (widget)
+                    (declare (ignore widget))
+                    (funcall s (funcall g w))
+                    (gtk4:gl-area-queue-render (renderer-area renderer)))))
+               (connect-scale (w s)
+                 (%connect w #'gtk4:range-value s))
+               (connect-spin-button (w s)
+                 (%connect w #'gtk4:spin-button-value s)))
+        (macrolet ((setter (accessor)
+                     `(lambda (x)
+                        (setf (,accessor scene) (float x 0.0)))))
+          (connect-scale camera-ϕ (setter scene-camera-ϕ))
+          (connect-scale camera-ψ (setter scene-camera-ψ))
+          (connect-scale camera-r (setter scene-camera-r))
+          (connect-scale plane-ϕ  (setter scene-plane-ϕ))
+          (connect-scale plane-ψ  (setter scene-plane-ψ))
+          (connect-scale plane-d  (setter scene-plane-d))
+          (connect-scale density-multiplier (setter scene-multiplier))
+          (connect-scale density-threshold  (setter scene-threshold))
+
+          (connect-spin-button voxel-size-x (setter scene-voxel-size-x))
+          (connect-spin-button voxel-size-y (setter scene-voxel-size-y))
+          (connect-spin-button voxel-size-z (setter scene-voxel-size-z))))
 
       (with-place (model-pointer-getter model-pointer-setter)
         (gtk4:connect
