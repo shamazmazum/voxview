@@ -49,16 +49,14 @@
          ;; Discard fragments outside (vec3 -1) ... (vec3 +1) cube
          (vari:discard)))
      (let* ((tex-coord (/ (1+ coord) 2))
-            (density (vari:swizzle (vari:texture model-texture tex-coord) :r)))
+            (density (vari:swizzle (vari:texture model-texture tex-coord) :r))
+            ;; Normalized density
+            (density (/ (- density min) (- max min))))
        (when (< density threshold)
          ;; Discard too transparent fragments
          (vari:discard))
        (vari:vec4
-        (vari:swizzle
-         (vari:texture
-          colormap
-          (/ (- density min) (- max min))) ; Normalized density
-         :rgb)
+        (vari:swizzle (vari:texture colormap density) :rgb)
         (* multiplier density))))))
 
 (defparameter *shaders*
