@@ -74,7 +74,7 @@
           (gtk4:file-chooser-add-filter dialog filter)))
   (values))
 
-(gtk4:define-application (:name voxview :id "org.fatimp.voxview")
+(gtk4:define-application (:name voxview-transparent :id "org.fatimp.voxview-transparent")
   (gtk4:define-main-window (window (gtk4:make-application-window
                                     :application gtk4:*application*))
     (setf (gtk4:window-title window) "Voxview")

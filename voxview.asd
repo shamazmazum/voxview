@@ -57,8 +57,8 @@
                  :cl-fad
                  :cl-value-noise)
     :build-operation program-op
-    :build-pathname "voxview"
-    :entry-point "voxview:voxview")
+    :build-pathname "voxview-transparent"
+    :entry-point "voxview:voxview-transparent")
 
 
 #+sb-core-compression
