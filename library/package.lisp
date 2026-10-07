@@ -12,14 +12,5 @@
            ;; Model computation
            #:allowed-array
            #:compute-model
-           ;; List zippers
-           #:list-zipper
-           #:stepper
-           #:zipper-to-head
-           #:current
-           #:current-or-previous
-           #:step-forward
-           #:step-backward
-           #:goto-element
            ;; Colormaps
            #:*viridis*))

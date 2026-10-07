@@ -84,21 +84,3 @@
      (member (pathname-type pathname) *loaders* :key #'loader-type :test #'string=))
    (cl-fad:list-directory
     (uiop:ensure-directory-pathname directory))))
-
-;; Zipper to a list of models
-(sera:-> zipper-to-model ((or string pathname))
-         (values list-zipper &optional))
-(defun zipper-to-model (filename)
-  "Return a zipper pointing to a file with a specific name in a list
-of all models in its directory. Signal FILE-NOT-FOUND is the directory
-cannot be listed for some reason."
-  (let* ((pathname (pathname filename))
-         (directory (make-pathname :device    (pathname-device    pathname)
-                                   :directory (pathname-directory pathname)))
-         (files (data-files directory))
-         (zipper (goto-element (zipper-to-head files)
-                               (truename pathname)
-                               :test #'equalp)))
-    (unless zipper
-      (error 'file-not-found :pathname pathname))
-    zipper))

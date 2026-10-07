@@ -8,8 +8,7 @@
     :components ((:file "package")
                  (:file "do-indices")
                  (:file "model")
-                 (:file "colormap")
-                 (:file "list-zipper"))
+                 (:file "colormap"))
     :depends-on (:alexandria
                  :serapeum
                  :stateless-iterators

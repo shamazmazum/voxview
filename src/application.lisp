@@ -1,24 +1,5 @@
 (in-package :voxview)
 
-(sera:-> navigation-button-handler
-         (model-gpu-uploader getter setter stepper)
-         (values (sera:-> (gir::object-instance) (values &optional)) &optional))
-(defun navigation-button-handler (uploader model-getter model-setter stepper)
-  (lambda (widget)
-    (declare (ignore widget))
-    (let ((pointer (funcall stepper (funcall model-getter))))
-      (handler-case
-          (progn
-            (funcall uploader (load-model (current-or-previous pointer)))
-            (funcall model-setter pointer))
-        (loader-error (c)
-          (show-error-dialog c))))))
-
-(defun format-status-line (zipper)
-  (format nil "Model file: ~a"
-          (enough-namestring (current-or-previous zipper)
-                             (truename #p"~/"))))
-
 (defun show-error-dialog (condition)
   (let ((dialog (gtk4:make-dialog)))
     (gtk4:dialog-add-button dialog "Close" gtk4:+response-type-close+)
@@ -117,10 +98,6 @@
                                           :spacing 5))
            (plane-box      (gtk4:make-box :orientation gtk4:+orientation-vertical+
                                           :spacing 5))
-           (navigation-box (gtk4:make-box :orientation gtk4:+orientation-horizontal+
-                                          :spacing 2))
-           (buttons-box    (gtk4:make-box :orientation gtk4:+orientation-vertical+
-                                          :spacing 0))
 
            (voxel-size-x (make-voxel-size-button (scene-voxel-size-x scene)))
            (voxel-size-y (make-voxel-size-button (scene-voxel-size-y scene)))
@@ -147,9 +124,6 @@
            (plane-d (scale -1.5d0 +1.5d0 (scene-plane-d scene) 1d-1))
 
            (open-model   (gtk4:make-button :label "Open model"))
-           (reload-model (gtk4:make-button :label "Reload model"))
-           (next-model (gtk4:make-button :icon-name "go-next"))
-           (prev-model (gtk4:make-button :icon-name "go-previous"))
            (status-label (gtk4:make-label :str "Welcome to Voxview"))
 
            (motion-controller (gtk4:make-event-controller-motion))
@@ -162,10 +136,7 @@
             (gtk4:frame-child density-frame) density-box
             (gtk4:frame-child control-frame) control-box
             (gtk4:frame-child camera-frame) camera-box
-            (gtk4:frame-child plane-frame) plane-box
-            (gtk4:widget-sensitive-p prev-model) nil
-            (gtk4:widget-sensitive-p next-model) nil
-            (gtk4:widget-sensitive-p reload-model) nil)
+            (gtk4:frame-child plane-frame) plane-box)
 
       (expand-widget (renderer-area renderer))
       (gtk4:box-append toplevel-box big-box)
@@ -176,10 +147,7 @@
       (gtk4:box-append control-box voxel-frame)
       (gtk4:box-append control-box density-frame)
       (gtk4:box-append control-box plane-frame)
-      (gtk4:box-append control-box buttons-box)
-      (gtk4:box-append buttons-box open-model)
-      (gtk4:box-append buttons-box reload-model)
-      (gtk4:box-append buttons-box navigation-box)
+      (gtk4:box-append control-box open-model)
 
       (append-with-label camera-box camera-ϕ "ϕ")
       (append-with-label camera-box camera-ψ "ψ")
@@ -198,10 +166,6 @@
       (append-with-label plane-box plane-ψ "ψ")
       (append-with-label plane-box plane-d "d")
       (gtk4:box-append plane-box enable-plane)
-
-      ;; Looks ugly
-      (gtk4:box-append navigation-box prev-model)
-      (gtk4:box-append navigation-box next-model)
 
       ;; Connect event controllers to the GL area
       (gtk4:widget-add-controller (renderer-area renderer) motion-controller)
@@ -247,76 +211,32 @@
           (connect-spin-button voxel-size-y (setter scene-voxel-size-y))
           (connect-spin-button voxel-size-z (setter scene-voxel-size-z))))
 
-      (with-place (model-pointer-getter model-pointer-setter)
-        (gtk4:connect
-         prev-model "clicked"
-         (navigation-button-handler (renderer-model-uploader renderer)
-                                    #'model-pointer-getter #'model-pointer-setter
-                                    #'step-backward))
-        (gtk4:connect
-         next-model "clicked"
-         (navigation-button-handler (renderer-model-uploader renderer)
-                                    #'model-pointer-getter #'model-pointer-setter
-                                    #'step-forward))
-
-        (dolist (button (list next-model prev-model))
-          (gtk4:connect
-           button "clicked"
-           (lambda (widget)
-             (declare (ignore widget))
-             (gtk4:gl-area-queue-render (renderer-area renderer))
-             (setf (gtk4:label-text status-label)
-                   (format-status-line (model-pointer-getter))))))
-
-        (gtk4:connect
-         open-model "clicked"
-         (lambda (widget)
-           (declare (ignore widget))
-           (let ((dialog (gtk4:make-file-chooser-native
-                          :title "Choose a model"
-                          :parent window
-                          :action gtk4:+file-chooser-action-open+
-                          :accept-label "Open"
-                          :cancel-label "Cancel")))
-
-             (add-filters-to-file-chooser-dialog dialog)
-             (gtk4:connect
-              dialog "response"
-              (lambda (widget response)
-                (declare (ignore widget))
-                (when (= response gtk4:+response-type-accept+)
-                  (let* ((file (gio:file-path
-                                (gtk4:file-chooser-file dialog)))
-                         (model-pointer (zipper-to-model file)))
-                    (handler-case
-                        (progn
-                          (funcall (renderer-model-uploader renderer)
-                                   (load-model (current-or-previous model-pointer)))
-                          (model-pointer-setter model-pointer)
-                          (setf
-                           (gtk4:widget-sensitive-p next-model) t
-                           (gtk4:widget-sensitive-p prev-model) t
-                           (gtk4:widget-sensitive-p reload-model) t
-                           (gtk4:label-text status-label)
-                           (format-status-line model-pointer))
-                          (gtk4:gl-area-queue-render (renderer-area renderer)))
-                      (loader-error (c)
-                        (show-error-dialog c)))))))
-             (gtk4:native-dialog-show dialog))))
-
-        (gtk4:connect
-         reload-model "clicked"
-         (lambda (widget)
-           (declare (ignore widget))
-           (let* ((model-pointer (model-pointer-getter))
-                  (model (current-or-previous model-pointer)))
-             (handler-case
-                 (progn
-                   (funcall (renderer-model-uploader renderer)
-                            (load-model model))
-                   (gtk4:gl-area-queue-render (renderer-area renderer)))
-               (loader-error (c)
-               (show-error-dialog c)))))))
+      (gtk4:connect
+       open-model "clicked"
+       (lambda (widget)
+         (declare (ignore widget))
+         (let ((dialog (gtk4:make-file-chooser-native
+                        :title "Choose a model"
+                        :parent window
+                        :action gtk4:+file-chooser-action-open+
+                        :accept-label "Open"
+                        :cancel-label "Cancel")))
+           (add-filters-to-file-chooser-dialog dialog)
+           (gtk4:connect
+            dialog "response"
+            (lambda (widget response)
+              (declare (ignore widget))
+              (when (= response gtk4:+response-type-accept+)
+                (let ((file (gio:file-path
+                             (gtk4:file-chooser-file dialog))))
+                  (handler-case
+                      (progn
+                        (funcall (renderer-model-uploader renderer)
+                                 (load-model file))
+                        (gtk4:gl-area-queue-render (renderer-area renderer)))
+                    (loader-error (c)
+                      (show-error-dialog c)))))))
+           (gtk4:native-dialog-show dialog))))
 
       ;; "Mouse look"
       ;; TODO: A separate control for sensitivity?
@@ -362,24 +282,7 @@
          (lambda (widget x y)
            (declare (ignore widget x))
            (incf (gtk4:range-value camera-r)
-                 (* y wheel-sensitivity)))))
-
-      ;; Add hotkeys
-      (flet ((add-action (name button hotkey)
-               (let ((action (gio:make-simple-action
-                              :name name :parameter-type nil)))
-                 (gtk4:connect
-                  action "activate"
-                  (lambda (action param)
-                    (declare (ignore action param))
-                    (when (gtk4:widget-sensitive-p button)
-                      (gtk4:widget-activate button))))
-                 (gio:action-map-add-action window action))
-               (gir:invoke (gtk4:*application* "set_accels_for_action")
-                           (format nil "win.~a" name)
-                           (list hotkey))))
-        (add-action "next-model" next-model "<Alt>d")
-        (add-action "prev-model" prev-model "<Alt>a")))
+                 (* y wheel-sensitivity))))))
 
     (unless (gtk4:widget-visible-p window)
       (gtk4:window-present window))))

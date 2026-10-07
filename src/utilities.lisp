@@ -1,19 +1,5 @@
 (in-package :voxview)
 
-(defmacro with-place ((getter setter) &body body)
-  (let ((place (gensym))
-        (value (gensym "VAL")))
-    `(let (,place)
-       (flet ((,getter ()
-                (assert ,place)
-                ,place)
-              (,setter (,value)
-                (setq ,place ,value)))
-         ,@body))))
-
-(deftype getter () '(sera:-> () (values t &optional)))
-(deftype setter () '(sera:-> (t) (values t &optional)))
-
 (defstruct scene
   ;; Voxel settings
   (voxel-size-x 1.0 :type single-float)
@@ -34,16 +20,7 @@
   (plane-ϕ 0.0 :type single-float)
   (plane-ψ 0.0 :type single-float)
   (plane-d 0.0 :type single-float)
-  (plane-p nil :type boolean)
-
-  ;; Is the scene loaded?
-  (loaded-p nil :type boolean))
-
-(sera:defconstructor gl-state
-  (vao           fixnum)
-  (model-texture fixnum)
-  (colormap      fixnum)
-  (program       fixnum))
+  (plane-p nil :type boolean))
 
 (sera:-> random-vec3 ()
          (values rtg-math.types:vec3 &optional))
