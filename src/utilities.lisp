@@ -184,41 +184,26 @@ dimensions of the screen."
                       (aref vector 3)))))
   (values))
 
-(declaim (inline flatten))
-(defun flatten (array)
-  (make-array (array-total-size array)
-              :element-type (array-element-type array)
-              :displaced-to array
-              :displaced-index-offset 0))
-
 (serapeum:-> fast-upload-voxels ((simple-array single-float (* * *)))
              (values &optional))
 (defun fast-upload-voxels (array)
   (declare (optimize (speed 3)))
-  #-sbcl
-  (gl:tex-image-3d :texture-3d 0 :red
-                   (array-dimension array 2)
-                   (array-dimension array 1)
-                   (array-dimension array 0)
-                   0 :red :float (flatten array))
-  #+sbcl
-  (cffi:with-pointer-to-vector-data (ptr (sb-ext:array-storage-vector array))
-    (gl:tex-image-3d :texture-3d 0 :red
-                     (array-dimension array 2)
-                     (array-dimension array 1)
-                     (array-dimension array 0)
-                     0 :red :float ptr)))
+  (let ((w (array-dimension array 2))
+        (h (array-dimension array 1))
+        (d (array-dimension array 0)))
+    (gl:tex-storage-3d :texture-3d 1 :r8 w h d)
+    (cffi:with-pointer-to-vector-data (ptr (sb-ext:array-storage-vector array))
+      (gl:tex-sub-image-3d :texture-3d 0 0 0 0 w h d
+                           :red :float ptr))))
 
 (serapeum:-> fast-upload-colormap ((simple-array single-float (* 3)))
              (values &optional))
 (defun fast-upload-colormap (array)
   (declare (optimize (speed 3)))
-  #-sbcl
-  (gl:tex-image-1d :texture-1d 0 :rgb (array-dimension array 0) 0 :rgb :float
-                   (flatten array))
-  #+sbcl
-  (cffi:with-pointer-to-vector-data (ptr (sb-ext:array-storage-vector array))
-    (gl:tex-image-1d :texture-1d 0 :rgb (array-dimension array 0) 0 :rgb :float ptr)))
+  (let ((w (array-dimension array 0)))
+    (gl:tex-storage-1d :texture-1d 1 :rgb32f w)
+    (cffi:with-pointer-to-vector-data (ptr (sb-ext:array-storage-vector array))
+      (gl:tex-sub-image-1d :texture-1d 0 0 w :rgb :float ptr))))
 
 (defconstant +palette-color-number+ 64
   "NUmber of colors in the palette")
