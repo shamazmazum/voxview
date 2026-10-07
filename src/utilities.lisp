@@ -228,30 +228,17 @@ dimensions of the screen."
                       (aref vector 3)))))
   (values))
 
-(declaim (inline flatten))
-(defun flatten (array)
-  (make-array (array-total-size array)
-              :element-type (array-element-type array)
-              :displaced-to array
-              :displaced-index-offset 0))
-
-(serapeum:-> fast-upload-3d-texture ((simple-array single-float (* * *)) t t t)
+(serapeum:-> fast-upload-3d-texture ((simple-array single-float (* * *)))
              (values &optional))
-(defun fast-upload-3d-texture (array internal-format format type)
+(defun fast-upload-3d-texture (array)
   (declare (optimize (speed 3)))
-  #-sbcl
-  (gl:tex-image-3d :texture-3d 0 internal-format
-                   (array-dimension array 2)
-                   (array-dimension array 1)
-                   (array-dimension array 0)
-                   0 format type (flatten array))
-  #+sbcl
-  (cffi:with-pointer-to-vector-data (ptr (sb-ext:array-storage-vector array))
-    (gl:tex-image-3d :texture-3d 0 internal-format
-                     (array-dimension array 2)
-                     (array-dimension array 1)
-                     (array-dimension array 0)
-                     0 format type ptr)))
+  (let ((width  (array-dimension array 2))
+        (height (array-dimension array 1))
+        (depth  (array-dimension array 0)))
+    (gl:tex-storage-3d :texture-3d 1 :r8 width height depth)
+    (cffi:with-pointer-to-vector-data (ptr (sb-ext:array-storage-vector array))
+      (gl:tex-sub-image-3d :texture-3d 0 0 0 0 width height depth
+                           :red :float ptr))))
 
 (defconstant +palette-color-number+ 64
   "NUmber of colors in the palette")

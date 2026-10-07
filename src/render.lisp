@@ -103,7 +103,7 @@
 
       ;; Upload model texture
       (gl:bind-texture :texture-3d texture)
-      (fast-upload-3d-texture *noise* :red :red :float)
+      (fast-upload-3d-texture *noise*)
       (gl:tex-parameter :texture-3d :texture-mag-filter :nearest)
       (gl:tex-parameter :texture-3d :texture-min-filter :nearest)
       (gl:tex-parameter :texture-3d :texture-wrap-s :mirrored-repeat)
@@ -117,8 +117,7 @@
 
       ;; Prepare shadowmap
       (gl:bind-texture :texture-2d shadowmap)
-      (gl:tex-image-2d :texture-2d 0 :depth-component +shadow-width+ +shadow-height+ 0
-                       :depth-component :float (cffi:null-pointer))
+      (gl:tex-storage-2d :texture-2d 1 :depth-component32f +shadow-width+ +shadow-height+)
       (gl:tex-parameter :texture-2d :texture-min-filter :nearest)
       (gl:tex-parameter :texture-2d :texture-mag-filter :nearest)
       (gl:tex-parameter :texture-2d :texture-wrap-s :repeat)
