@@ -19,18 +19,6 @@
                       (declare (ignore op system))
                       (uiop:symbol-call :voxview/library/tests '#:run-tests)))
 
-(defsystem :voxview/library/tests
-    :name :voxview/library/tests
-    :version "0.3.0"
-    :author "Vasily Postnicov <shamaz.mazum@gmail.com>"
-    :license "2-clause BSD"
-    :serial t
-    :pathname "tests"
-    :components ((:file "package")
-                 (:file "tests"))
-    :depends-on (:voxview/library
-                 :fiveam))
-
 (defsystem :voxview
     :name :voxview
     :version "0.3.0"
