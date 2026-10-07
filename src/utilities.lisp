@@ -44,7 +44,8 @@ when the latter tracks the first.")
 
 (sera:defconstructor gl-state
   ;; Common resources
-  (vao         fixnum)
+  (vao-model   fixnum)
+  (vao-aux     fixnum)
   (posbuffer   fixnum)
   (labelbuffer fixnum)
   (indbuffer   fixnum)

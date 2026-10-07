@@ -88,7 +88,8 @@
           (ls-program
            (create-program
             *light-source-shaders*))         ; Light source rendering program
-          (vao (gl:gen-vertex-array))        ; Vertex array object for a model
+          (vao-model (gl:gen-vertex-array))  ; Vertex array object for a model
+          (vao-aux   (gl:gen-vertex-array))  ; Vertex array object for auxiliary stuff
           (posbuffer   (gl:gen-buffer))      ; Position of the vertices
           (labelbuffer (gl:gen-buffer))      ; Voxel label
           (palbuffer   (gl:gen-buffer))      ; Palette colors
@@ -128,8 +129,19 @@
       (gl:read-buffer :none)
       (gl:bind-framebuffer :framebuffer 0)
 
+      (gl:bind-vertex-array vao-model)
+      (gl:enable-vertex-attrib-array 0)
+      (gl:bind-buffer :array-buffer posbuffer)
+      (gl:bind-buffer :element-array-buffer indbuffer)
+      (gl:vertex-attrib-pointer 0 3 :float nil 0 0)
+
+      (gl:enable-vertex-attrib-array 1)
+      (gl:bind-buffer :array-buffer labelbuffer)
+      (gl:vertex-attrib-ipointer 1 1 :unsigned-int 0 0)
+      (gl:bind-vertex-array 0)
+
       (funcall setter
-               (gl-state vao posbuffer labelbuffer indbuffer palbuffer
+               (gl-state vao-model vao-aux posbuffer labelbuffer indbuffer palbuffer
                          pass-0 framebuffer shadowmap
                          pass-1 texture palette pass-2 cp-program ls-program)))
     (values)))
@@ -148,7 +160,8 @@
                                (gl-state-labelbuffer gl-state)
                                (gl-state-posbuffer   gl-state)
                                (gl-state-palbuffer   gl-state)))
-      (gl:delete-vertex-arrays (list (gl-state-vao gl-state)))
+      (gl:delete-vertex-arrays (list (gl-state-vao-model gl-state)
+                                     (gl-state-vao-aux   gl-state)))
       (gl:delete-program (gl-state-pass-0 gl-state))
       (gl:delete-program (gl-state-pass-1 gl-state))
       (gl:delete-program (gl-state-pass-2 gl-state))
@@ -157,20 +170,8 @@
     (values)))
 
 (defun render-scene (gl-state scene)
-  (gl:bind-vertex-array (gl-state-vao gl-state))
-  (gl:enable-vertex-attrib-array 0)
-  (gl:bind-buffer :array-buffer (gl-state-posbuffer gl-state))
-  (gl:bind-buffer :element-array-buffer (gl-state-indbuffer gl-state))
-  (gl:vertex-attrib-pointer 0 3 :float nil 0 0)
-
-  (gl:enable-vertex-attrib-array 1)
-  (gl:bind-buffer :array-buffer (gl-state-labelbuffer gl-state))
-  (gl:vertex-attrib-ipointer 1 1 :unsigned-int 0 0)
-
-  (%gl:draw-elements :triangles (scene-nelements scene) :unsigned-int 0)
-
-  (gl:disable-vertex-attrib-array 1)
-  (gl:disable-vertex-attrib-array 0))
+  (gl:bind-vertex-array (gl-state-vao-model gl-state))
+  (%gl:draw-elements :triangles (scene-nelements scene) :unsigned-int 0))
 
 (deftype uniform ()
   `(member :cp :use-cp-p
@@ -322,6 +323,7 @@
            (gl:stencil-op :keep :keep :keep)
 
            (gl:disable :cull-face)
+           (gl:bind-vertex-array (gl-state-vao-aux gl-state))
            (gl:draw-arrays :triangle-strip 0 4)
 
            ;; Disable stencil tests
@@ -336,6 +338,7 @@
            (set-uniform area scene (gl-state-ls-program gl-state) :l-position)
 
            ;; Render a triangle
+           (gl:bind-vertex-array (gl-state-vao-aux gl-state))
            (gl:draw-arrays :triangles 0 3)))
 
        ;; T indicates that we are done
